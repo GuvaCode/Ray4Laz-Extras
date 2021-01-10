@@ -1,0 +1,26 @@
+
+temp/*.o
+temp/*.ppu
+temp/*.a
+temp/*.compiled
+temp/
+
+binary/*
+!binary/resources/
+
+
+
+
+# macos
+.DS_Store
+*.dylib
+
+# laz
+backup/
+#examples/
+lib/
+templates/standard_game/
+*.lps
+
+# GNU+Linux
+*.so
