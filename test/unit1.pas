@@ -13,8 +13,7 @@ TGame = class(TRayApplication)
   protected
   public
     Engine3D: T3DEngine;
-    Cam: TCamera;
-    Test:TModelSprite;
+    Test,test1:TModelSprite;
     constructor Create; override;
     procedure Init; override;
     procedure Update; override;
@@ -33,47 +32,40 @@ end;
 
 procedure TGame.Init;
 begin
+  SetTargetFPS(60);
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     Engine3D:=T3DEngine.Create;
-  Engine3D.Camera:=Cam;
 
-  Test:=TModelSprite.Create(Engine3D,'dwarf.obj');
+
+  Test:=TModelSprite.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
   Test.X:=0;
   Test.Y:=0;
   Test.Z:=0;
 
-    // Define the camera to look into our 3d world
-  cam.position := Vector3Create(3.0, 3.0, 3.0);
-  cam.target := Vector3Create(0.0, 1.5, 0.0);
-  cam.up := Vector3Create(0.0, 1.0, 0.0);
-  cam.fovy := 45.0;
-  cam._type := CAMERA_PERSPECTIVE;
 
-  SetCameraMode(Cam, CAMERA_ORBITAL); // Set an orbital camera mode
+  Test1:=TModelSprite.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
+  Test1.X:=1;
+  Test1.Y:=1;
+  Test1.Z:=0.1;
 
 end;
 
 procedure TGame.Update;
 begin
   Engine3D.Move(1);
- // UpdateCamera(@Camera); // Update camera
- UpdateCamera(@cam); // Update camera
+ if IsKeyDown(KEY_A) then test.X:=test.X+0.1;
+ if IsKeyDown(KEY_D) then test.X:=test.X-0.1;
 end;
 
 procedure TGame.Render;
 begin
-   ClearBackground(Blue);
-
-    BeginMode3d(cam);
-
- //   DrawModel(dwarf, position, 2.0, WHITE); // Draw 3d model with texture
-  //  DrawGrid(10, 0.5); // Draw a grid
+     //ClearBackground(RAYWHITE);
 
     Engine3d.Draw();
 
-    DrawGrid(10, 0.5); // Draw a grid
+    DrawText('(c) Dwarf 3D model by David Moreno', 800 - 200, 600 - 20, 10, BLACK);
+    DrawFPS(10, 10);
 
-    EndMode3d();
 
 end;
 

@@ -15,6 +15,7 @@ type
    private
      FWorld: TVector3;
      FCamera: TCamera;
+
      procedure SetCamera(Value: TCamera3D);
      procedure SetWorldX(Value: Single);
      procedure SetWorldY(Value: Single);
@@ -35,13 +36,13 @@ type
    end;
 
   { TModelSprite }
-
   TModelSprite = class
   private
     FVector: TVector3;
   protected
     FEngine: T3DEngine;
     FModel: TModel;
+    FTexture: TTexture2d;
   public
     Angle: Single;
     IsModelDead: Boolean;
@@ -49,7 +50,7 @@ type
     procedure Draw();
     procedure Move(DT: Double); virtual;
     procedure Dead();
-    constructor Create(Engine: T3DEngine; ModelFileName:String); virtual;
+    constructor Create(Engine: T3DEngine; ModelFile:String; TextureFile:String); virtual;
     destructor Destroy; override;
     property X: Single read FVector.X write FVector.X;
     property Y: Single read FVector.Y write FVector.Y;
@@ -65,9 +66,8 @@ procedure TModelSprite.Draw();
 begin
   if Assigned(FEngine) then
   begin
-   //BeginMode3d(FEngine.Camera);
-    DrawModel(FModel, FVector, 2.0, WHITE); // Draw 3d model with texture
- // EndMode3d();
+    DrawModel(FModel, FVector, 1.0, WHITE); // Draw 3d model with texture
+ //todo scale
   end;
 end;
 
@@ -86,11 +86,16 @@ begin
   end;
 end;
 
-constructor TModelSprite.Create(Engine: T3DEngine; ModelFileName: String);
-begin
+constructor TModelSprite.Create(Engine: T3DEngine; ModelFile: String;
+  TextureFile: String);
+begin                       //todo
   FEngine := Engine;
   FEngine.List.Add(Self);
-  FModel:=LoadModel(PChar(ModelFileName));
+  FModel:=LoadModel(PChar(ModelFile));
+  FTexture:= LoadTexture(PChar(TextureFile));
+
+  SetMaterialTexture(@FModel.materials[0], MAP_DIFFUSE, FTexture);
+
 end;
 
 destructor TModelSprite.Destroy;
@@ -102,7 +107,7 @@ end;
 
 procedure T3DEngine.SetCamera(Value: TCamera3D);
 begin
-  FCamera := Value;
+  FCamera := Value; //????????????///
 end;
 
 procedure T3DEngine.SetWorldX(Value: Single);
@@ -119,12 +124,15 @@ procedure T3DEngine.Draw();
 var
   i: Integer;
 begin
+  BeginMode3d(FCamera);
   for i := 0 to List.Count - 1 do
   begin
     //BeginMode3d(FCamera);
     TModelSprite(List.Items[i]).Draw();
+    DrawGrid(10, 0.5);
     //EndMode3d();
   end;
+  EndMode3d();
 end;
 
 procedure T3DEngine.ClearDeadModel;
@@ -148,21 +156,27 @@ procedure T3DEngine.Move(DT: Double);
 var
   i: Integer;
 begin
-  UpdateCamera(@FCamera); // Update camera
+   UpdateCamera(@FCamera); // Update camera
   for i := 0 to List.Count - 1 do
   begin
-
     TModelSprite(List.Items[i]).Move(DT);
   end;
-
 end;
-
-
 
 constructor T3DEngine.Create;
 begin
   List := TList.Create;
   DeadList := TList.Create;
+
+  FCamera.position := Vector3Create(3.0, 3.0, 3.0);
+  FCamera.target := Vector3Create(0.0, 1.5, 0.0);
+  FCamera.up := Vector3Create(0.0, 1.0, 0.0);
+  FCamera.fovy := 65.0;
+  FCamera._type := CAMERA_PERSPECTIVE;
+
+  SetCameraMode(FCamera, CAMERA_THIRD_PERSON); // Set an orbital camera mode
+
+
 end;
 
 destructor T3DEngine.Destroy;
