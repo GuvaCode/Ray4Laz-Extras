@@ -142,7 +142,7 @@ var
 begin
   Result:=inherited InitProject(AProject);
 
-  MainFile:=AProject.CreateProjectFile('Game.lpr');
+  MainFile:=AProject.CreateProjectFile('myGame.lpr');
   MainFile.IsPartOfProject:=true;
   AProject.AddFile(MainFile,false);
   AProject.MainFileID:=0;

@@ -51,7 +51,7 @@ constructor TRayApplication.Create;
 begin
    InitWindow(800, 600, 'raylib [core] - basic window');
    SetWindowState(FLAG_VSYNC_HINT);
-  // FClearBgColor:= RAYWHITE;
+   FClearBgColor:= BLACK;
 end;
 
 destructor TRayApplication.Destroy;
@@ -93,7 +93,6 @@ begin
   while not WindowShouldClose() do
   begin
     Update;
-
     BeginDrawing();
     ClearBackground(FClearBgColor);
     Render;
