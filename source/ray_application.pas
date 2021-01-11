@@ -51,7 +51,7 @@ constructor TRayApplication.Create;
 begin
    InitWindow(800, 600, 'raylib [core] - basic window');
    SetWindowState(FLAG_VSYNC_HINT);
-   FClearBgColor:= RAYWHITE;
+  // FClearBgColor:= RAYWHITE;
 end;
 
 destructor TRayApplication.Destroy;
@@ -66,7 +66,7 @@ end;
 
 procedure TRayApplication.Shutdown;
 begin
-
+  CloseWindow(); // Close window and OpenGL context
 end;
 
 procedure TRayApplication.Update;
@@ -100,7 +100,7 @@ begin
     EndDrawing();
   end;
   Shutdown;
- CloseWindow(); // Close window and OpenGL context
+
 end;
 
 procedure TRayApplication.Terminate;
