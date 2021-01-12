@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  cmem, ray_headers, ray_application, ray_model, math;
+  cmem, ray_headers, ray_application, ray_model, ray_math, math;
 
 type
 TGame = class(TRayApplication)
@@ -41,7 +41,7 @@ begin
   Test.X:=0;
   Test.Y:=0;
   Test.Z:=0;
-  Test.DrawMode:=dmWiresEx;
+  Test.DrawMode:=dmEx;
 
   Test1:=T3DModel.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
   Test1.X:=1;
@@ -55,15 +55,20 @@ begin
   Engine3D.Move(1);
  if IsKeyDown(KEY_A) then test.X:=test.X+0.1;
  if IsKeyDown(KEY_D) then test.X:=test.X-0.1;
-  if IsKeyDown(KEY_Z) then test.AxisZ:=test.AxisZ+1;
-  if IsKeyDown(KEY_X) then  begin
-    test.AxisZ:=2;
-    test.AxisY:=4;
+  if IsKeyDown(KEY_Z) then test.AngleY:=test.AngleY+0.1;
+  if IsKeyDown(KEY_X) then
+  begin
 
-    // test.AxisZ:=test.AxisZ+1;
-    test.Angle:=test.Angle+1;
+  test1.AxisY:=0.0;
+  test1.AxisX:=test1.AxisX+0.1;
+  test1.AxisZ:=0.0;
+
+  test1.Angle:=test1.Angle+0.1;
+ // test1.Angle:=test1.Angle+0.1;
+ // test1.Angle:=test1.Angle+0.1;
 
   end;
+
 end;
 
 procedure TGame.Render;

@@ -5,7 +5,7 @@ unit ray_model;
 interface
 
 uses
-  ray_headers, classes;
+  ray_headers, ray_math, classes;
 
 type
   TModelDrawMode = (dmNormal, dmEx, dmWires, dmWiresEx);
@@ -39,13 +39,18 @@ type
   T3DModel = class
   private
     FAngle: Single;
+    FAngleX: Single;
+    FAngleY: Single;
+    FAngleZ: Single;
     FAxis: TVector3;
+    FAxisX: Single;
+    FAxisY: Single;
+    FAxisZ: Single;
     FColor: TColor;
     FDrawMode: TModelDrawMode;
     FScale: Single;
     FScaleEx: TVector3;
     FPosition: TVector3;
-    procedure SetAngle(AValue: Single);
     procedure SetScale(AValue: Single);
   protected
     FEngine: T3DEngine;
@@ -60,13 +65,20 @@ type
     constructor Create(Engine: T3DEngine; ModelFile:String; TextureFile:String); virtual;
     destructor Destroy; override;
 
-    property Angle: Single read FAngle write SetAngle;
-    property AxisX: Single read FAxis.X write FAxis.X;
-    property AxisY: Single read FAxis.Y write FAxis.Y;
-    property AxisZ: Single read FAxis.Z write FAxis.Z;
+
+    property AxisX: Single read FAxisX write FAxisX;
+    property AxisY: Single read FAxisY write FAxisY;
+    property AxisZ: Single read FAxisZ write FAxisZ;
+
+    property Angle: Single read FAngle write FAngle;
+    property AngleX: Single read FAngleX write FAngleX;
+    property AngleY: Single read FAngleY write FAngleY;
+    property AngleZ: Single read FAngleZ write FAngleZ;
+
     property X: Single read FPosition.X write FPosition.X;
     property Y: Single read FPosition.Y write FPosition.Y;
     property Z: Single read FPosition.Z write FPosition.Z;
+
     property Scale: Single read FScale write SetScale;
     property Color: TColor read FColor write FColor;
     property DrawMode: TModelDrawMode read FDrawMode write FDrawMode;
@@ -84,26 +96,23 @@ begin
   Vector3Set(@FScaleEx,FScale,FScale,FScale);
 end;
 
-procedure T3DModel.SetAngle(AValue: Single);
-begin
-  if FAngle=AValue then Exit;
-  FAngle:=AValue;
-end;
-
 procedure T3DModel.Draw();
 begin
   if Assigned(FEngine) then
     case FDrawMode of
     dmNormal: DrawModel(FModel, FPosition, FScale, WHITE); // Draw 3d model with texture
     dmEx: DrawModelEx(FModel, FPosition, FAxis, FAngle, FScaleEx, FColor); // Draw a model with extended parameters
-    dmWires: DrawModelWires(FModel,FPosition,FScale,FColor);  // Draw a model wires (with texture if set)
-    dmWiresEX: DrawModelWiresEx(FModel,FPosition,FAxis,FAngle,FScaleEx,FColor);
+    dmWires: DrawModelWires(FModel, FPosition, FScale, FColor);  // Draw a model wires (with texture if set)
+    dmWiresEX: DrawModelWiresEx(FModel,FPosition,FAxis, FAngle, FScaleEx,FColor);
     end;
 end;
 
 procedure T3DModel.Move(DT: Double);
 begin
 
+  FModel.transform:=MatrixRotateXYZ(Vector3Create(DEG2RAD*FAngleX,DEG2RAD*FAngleY,DEG2RAD*FAngleZ));
+   // DEG2RAD
+   Vector3Set(@FAxis,FAxisX,FAxisY,FAxisZ);
 end;
 
 procedure T3DModel.Dead();
@@ -128,8 +137,10 @@ begin
   FDrawMode:=dmNormal;
   FColor:=WHITE;
   FAngle:=1.0;
-  FAxis:=Vector3Create(1.0,1.0,1.0);
+  FPosition:=Vector3Create(0.0,0.0,0.0);
+  FAxis:=Vector3Create(0.0,0.0,0.0);
   FScaleEx:= Vector3Create(1.0,1.0,1.0);
+  FAngleX:=0.0;
 end;
 
 destructor T3DModel.Destroy;
