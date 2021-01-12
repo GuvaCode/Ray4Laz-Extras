@@ -37,7 +37,7 @@ begin
     Engine3D:=T3DEngine.Create;
 
 
-  Test:=T3DModel.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
+  Test:=T3DModel.Create(Engine3D,'dwarf.obj','mainhull_diffuse.png');
   Test.X:=0;
   Test.Y:=0;
   Test.Z:=0;
