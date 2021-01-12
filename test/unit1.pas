@@ -13,7 +13,7 @@ TGame = class(TRayApplication)
   protected
   public
     Engine3D: T3DEngine;
-    Test,test1:TModelSprite;
+    Test,test1:T3DModel;
     constructor Create; override;
     procedure Init; override;
     procedure Update; override;
@@ -37,13 +37,13 @@ begin
     Engine3D:=T3DEngine.Create;
 
 
-  Test:=TModelSprite.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
+  Test:=T3DModel.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
   Test.X:=0;
   Test.Y:=0;
   Test.Z:=0;
+  Test.DrawMode:=dmWiresEx;
 
-
-  Test1:=TModelSprite.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
+  Test1:=T3DModel.Create(Engine3D,'dwarf.obj','dwarf_diffuse.png');
   Test1.X:=1;
   Test1.Y:=1;
   Test1.Z:=0.1;
@@ -55,6 +55,15 @@ begin
   Engine3D.Move(1);
  if IsKeyDown(KEY_A) then test.X:=test.X+0.1;
  if IsKeyDown(KEY_D) then test.X:=test.X-0.1;
+  if IsKeyDown(KEY_Z) then test.AxisZ:=test.AxisZ+1;
+  if IsKeyDown(KEY_X) then  begin
+    test.AxisZ:=2;
+    test.AxisY:=4;
+
+    // test.AxisZ:=test.AxisZ+1;
+    test.Angle:=test.Angle+1;
+
+  end;
 end;
 
 procedure TGame.Render;
