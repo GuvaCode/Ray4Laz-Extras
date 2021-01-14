@@ -50,7 +50,7 @@ type
   TRaySprite = class
   private
     FAnimated: Boolean;
-    FVector: TVector3;
+    FVector: TVector2;
     FZ: Single;
     FScale: Single;
   protected
@@ -135,17 +135,23 @@ begin
               begin
                 if DrawMode = 0 then
                 begin
-                  Source:=RectangleCreate(0,0,FTexture.Pattern[FTextureIndex].Width,
-                  FTexture.Pattern[FTextureIndex].Height);
+                  Source:=RectangleCreate(0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
 
-                  Dest:=RectangleCreate(FEngine.FCamera.target.X + X,
-                  FEngine.FCamera.target.X + Y,FTexture.Pattern[FTextureIndex].Width,
+                  Dest:=RectangleCreate( FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
 
-                  FTexture.Pattern[FTextureIndex].Height);
+                  //  FVector.x:=0;
 
-                  Pos:=Vector2Create(FEngine.FCamera.target.X + X, FEngine.FCamera.target.X + Y);
+                 // Vector2Set(@Pos,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y);
+                    Vector2Set(@Pos,FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
+                    // Pos:=Vector2Create(FEngine.FCamera.offset.x + X,FEngine.FCamera.offset.y + Y);
 
-                  DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest, Pos, 0, WHITE);
+
+
+                    {DrawTexture(FTexture.Texture[FTextureIndex],
+                  round(FEngine.FCamera.target.x + X),round( FEngine.FCamera.target.y + Y),
+                  WHITE);}
+
+                   DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest, Pos, 0, WHITE);
 
                   {DrawTexture(FTexture.Texture[FTextureIndex],
                   round(FEngine.FCamera.target.x + X),
@@ -241,6 +247,7 @@ begin
   ScaleY := 1.0;
   Visible := True; // Displaymode Width/Height
   VisibleArea := Rect(-300, -300, 800, 600);
+
 end;
 
 constructor TRaySprite.CreateEx(Engine: T2DEngine; Texture: TGameTexture);
