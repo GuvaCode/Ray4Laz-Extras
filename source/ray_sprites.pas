@@ -141,6 +141,7 @@ begin
 
                  RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
                  RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+
                  Vector2Set(@WH,FTexture.Pattern[FTextureIndex].Width/2,FTexture.Pattern[FTextureIndex].Height/2);
 
                  AlphaColor:=White;  AlphaColor.a:=alpha;

@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  cmem, ray_headers, ray_application, ray_sprites,  math, classes;
+  cmem, ray_headers, ray_application, ray_sprites, classes;
 
 type
 TGame = class(TRayApplication)
