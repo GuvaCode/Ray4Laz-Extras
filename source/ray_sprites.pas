@@ -113,6 +113,9 @@ begin
 end;
 
 procedure TRaySprite.Draw();
+var Source: TRectangle;
+    Dest: TRectangle;
+    Pos:TVector2;
 begin
    if TextureIndex <> -1 then
   begin
@@ -132,10 +135,23 @@ begin
               begin
                 if DrawMode = 0 then
                 begin
+                  Source:=RectangleCreate(0,0,FTexture.Pattern[FTextureIndex].Width,
+                  FTexture.Pattern[FTextureIndex].Height);
 
-                //  DrawTextureTiled(
+                  Dest:=RectangleCreate(FEngine.FCamera.target.X + X,
+                  FEngine.FCamera.target.X + Y,FTexture.Pattern[FTextureIndex].Width,
 
-                 { ssprite2d_Draw(FTexture.Texture[FTextureIndex],
+                  FTexture.Pattern[FTextureIndex].Height);
+
+                  Pos:=Vector2Create(FEngine.FCamera.target.X + X, FEngine.FCamera.target.X + Y);
+
+                  DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest, Pos, 0, WHITE);
+
+                  {DrawTexture(FTexture.Texture[FTextureIndex],
+                  round(FEngine.FCamera.target.x + X),
+                  round(FEngine.FCamera.target.y + Y),WHITE);}
+
+                  { ssprite2d_Draw(FTexture.Texture[FTextureIndex],
                     FEngine.FCamera.X + X, FEngine.FCamera.Y + Y,
                     FTexture.Pattern[FTextureIndex].Width,
                     FTexture.Pattern[FTextureIndex].Height, Angle, Alpha);}
@@ -143,6 +159,9 @@ begin
 
                 if DrawMode = 1 then
                 begin
+                {DrawTexture(FTexture.Texture[FTextureIndex],
+                  round(FEngine.FCamera.target.x + X),
+                  round(FEngine.FCamera.target.y + Y),BLACK); }
                {   fx2d_SetScale(ScaleX, ScaleY);
                   ssprite2d_Draw(FTexture.Texture[FTextureIndex],
                     FEngine.FCamera.X + X, FEngine.FCamera.Y + Y,
@@ -162,6 +181,9 @@ begin
       begin
         if DrawMode = 0 then
         begin
+        {   DrawTexture(FTexture.Texture[FTextureIndex],
+                  round( X),
+                  round( Y),BLACK);}
           { ssprite2d_Draw(FTexture.Texture[FTextureIndex], X, Y,
             FTexture.Pattern[FTextureIndex].Width,
             FTexture.Pattern[FTextureIndex].Height, Angle, Alpha); }
@@ -362,6 +384,7 @@ constructor T2DEngine.Create;
 begin
   List := TList.Create;
   DeadList := TList.Create;
+  FCamera.target.x:=0;
 end;
 
 destructor T2DEngine.Destroy;
