@@ -16,7 +16,7 @@ TGame = class(TRayApplication)
     Engine: T2DEngine;
     Texture: TGameTexture;
     Ground: array of array of TRaySprite;
-  //  Tree: array of TRaySprite;
+
     test:TRaySprite;
     constructor Create; override;
     procedure Init; override;
@@ -43,7 +43,7 @@ begin
   Engine.Camera := CamMain;
   Texture := TGameTexture.Create;
   Texture.LoadFromFile('bg.png', 256, 256);
-  Texture.LoadFromFile('0.png', 38, 37);
+  Texture.LoadFromFile('1.png', 128, 128);
 
   SetLength(Ground, MapSize + 1, MapSize + 1);
 
@@ -66,7 +66,8 @@ begin
     test.X:=300;
     test.Y:=300;
     test.Z:=100;
-
+  //  test.Alpha:=120;
+    test.Angle:=20;
 
   //Engine.Camera.offset.y:=0;
  // Engine.Camera.target.X:=0;
@@ -74,13 +75,14 @@ end;
 
 procedure TGame.Update;
 begin
-
+ // Dec(test.Alpha) ;
+  test.Angle:=test.Angle+0.1;
   engine.Move(1);
 end;
 
 procedure TGame.Render;
 begin
-  ClearBackground(RED);
+  ClearBackground(blue);
   BeginMode2D(camMain);
   engine.Draw;
   EndMode2D();

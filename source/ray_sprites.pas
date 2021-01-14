@@ -115,7 +115,8 @@ end;
 procedure TRaySprite.Draw();
 var Source: TRectangle;
     Dest: TRectangle;
-    Pos:TVector2;
+    WH:TVector2;
+    AlphaColor:TColor;
 begin
    if TextureIndex <> -1 then
   begin
@@ -135,32 +136,17 @@ begin
               begin
                 if DrawMode = 0 then
                 begin
-                  Source:=RectangleCreate(0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+                  //Source:=RectangleCreate(0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+                 // Dest:=RectangleCreate( FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
 
-                  Dest:=RectangleCreate( FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+                 RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+                 RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+                 Vector2Set(@WH,FTexture.Pattern[FTextureIndex].Width/2,FTexture.Pattern[FTextureIndex].Height/2);
 
-                  //  FVector.x:=0;
+                 AlphaColor:=White;  AlphaColor.a:=alpha;
+                 DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, ScaleX, AlphaColor);
 
-                 // Vector2Set(@Pos,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y);
-                    Vector2Set(@Pos,FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
-                    // Pos:=Vector2Create(FEngine.FCamera.offset.x + X,FEngine.FCamera.offset.y + Y);
-
-
-
-                    {DrawTexture(FTexture.Texture[FTextureIndex],
-                  round(FEngine.FCamera.target.x + X),round( FEngine.FCamera.target.y + Y),
-                  WHITE);}
-
-                   DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest, Pos, 0, WHITE);
-
-                  {DrawTexture(FTexture.Texture[FTextureIndex],
-                  round(FEngine.FCamera.target.x + X),
-                  round(FEngine.FCamera.target.y + Y),WHITE);}
-
-                  { ssprite2d_Draw(FTexture.Texture[FTextureIndex],
-                    FEngine.FCamera.X + X, FEngine.FCamera.Y + Y,
-                    FTexture.Pattern[FTextureIndex].Width,
-                    FTexture.Pattern[FTextureIndex].Height, Angle, Alpha);}
+             //    DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, AlphaColor);
                 end;
 
                 if DrawMode = 1 then
