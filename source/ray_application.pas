@@ -50,13 +50,11 @@ end;
 constructor TRayApplication.Create;
 begin
    InitWindow(800, 600, 'raylib [core] - basic window');
-<<<<<<< Updated upstream
+
    SetWindowState(FLAG_VSYNC_HINT);
    FClearBgColor:= BLACK;
-=======
-   SetWindowState(FLAG_WINDOW_UNDECORATED or FLAG_WINDOW_TRANSPARENT);
-   FClearBgColor:= BLANK;
->>>>>>> Stashed changes
+
+
 end;
 
 destructor TRayApplication.Destroy;

@@ -6,7 +6,7 @@ unit ray_sprites;
 interface
 
 uses
-  System, Classes, SysUtils, Generics.Collections, ray_types, ray_ypesEx;
+  System, Classes, SysUtils, Generics.Collections, ray_types, ray_typesEx;
 
 type
   TCollideMode = (cmCircle, cmRect, cmQuadrangle, cmPolygon);
