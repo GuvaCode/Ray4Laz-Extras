@@ -8,7 +8,11 @@ unit ray4laz_extra;
 interface
 
 uses
+<<<<<<< Updated upstream
   ray4lazEx_desc, ray_application, ray.sprites, LazarusPackageIntf;
+=======
+  ray4lazEx_desc, ray_application, ray_model, ray_sprites, LazarusPackageIntf;
+>>>>>>> Stashed changes
 
 implementation
 
