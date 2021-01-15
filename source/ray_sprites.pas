@@ -12,7 +12,7 @@ type
   T2DEngine = class
   private
     FCamera: TCamera2D;
-    FWorld: TVector3;
+    FWorld: TVector2;
     procedure SetCamera(AValue: TCamera2D);
     procedure SetWorldX(Value: Single);
     procedure SetWorldY(Value: Single);
@@ -67,7 +67,6 @@ type
     DrawMode: Integer;
     ScaleX, ScaleY: Single;
     Visible: Boolean;
-    VisibleArea: TRect;
     Pattern: TNPatchInfo;
     procedure Draw();
     procedure Move(MoveCount: Double); virtual;
@@ -75,7 +74,6 @@ type
     procedure SetOrder(Value: Single);
     procedure SetScale(Value: Single);
     constructor Create(Engine: T2DEngine; Texture: TGameTexture); virtual;
-    constructor CreateEx(Engine: T2DEngine; Texture: TGameTexture); virtual;
     destructor Destroy; override;
     property TextureIndex: Integer read FTextureIndex write SetTextureIndex;
     property TextureName: string read FTextureName write SetTextureName;
@@ -85,7 +83,319 @@ type
     property Scale: Single read FScale write SetScale;
   end;
 
+
+    { TRayAnimatedSprite }
+
+    TRayAnimatedSprite = class(TRaySprite)
+  protected
+    FDoAnimated: Boolean;
+    FSplited: array of TRect;
+    FPatternIndex: Integer;
+    FPatternHeight: Integer;
+    FPatternWidth: Integer;
+    procedure SetPatternHeight(Value: Integer);
+    procedure SetPatternWidth(Value: Integer);
+  public
+    AnimLooped: Boolean;
+    AnimStart: Integer;
+    AnimCount: Integer;
+    AnimSpeed: Single;
+    AnimPos: Single;
+
+    PatternCount: Integer;
+    PatternDeltaX: Integer;
+    PatternDeltaY: Integer;
+
+    procedure Split();
+    procedure Split2();
+    procedure Split3();
+
+    procedure Draw();
+    procedure Move(MoveCount: Double); override;
+
+    procedure DoAnim(Looped: Boolean; Start: Integer; Count: Integer;
+      Speed: Single);
+
+    constructor Create(Engine: T2DEngine; Texture: TGameTexture); override;
+    destructor Destroy; override;
+
+    property PatternHeight: Integer read FPatternHeight write SetPatternHeight;
+    property PatternWidth: Integer read FPatternWidth write SetPatternWidth;
+  end;
+
+
+
 implementation
+
+{ TRayAnimatedSprite }
+
+procedure TRayAnimatedSprite.SetPatternHeight(Value: Integer);
+begin
+  FPatternHeight := Value;
+  Pattern.Bottom := Value;
+end;
+
+procedure TRayAnimatedSprite.SetPatternWidth(Value: Integer);
+begin
+  FPatternWidth := Value;
+  Pattern.Right := Value;
+end;
+
+procedure TRayAnimatedSprite.Split();
+ var
+  i: Integer;
+begin
+  SetLength(FSplited, PatternCount + 1);
+  for i := 0 to PatternDeltaY - 1 do
+  begin
+    if i = 0 then
+    begin
+      FSplited[PatternCount].Left := 0;
+      FSplited[PatternCount].Top := 0;
+      FSplited[PatternCount].Right := PatternWidth;
+      FSplited[PatternCount].Bottom := PatternHeight;
+      Inc(PatternCount);
+    end; // if i = 0
+    if i >= 1 then
+    begin
+
+      SetLength(FSplited, PatternCount + 1);
+
+      FSplited[PatternCount].Left := 0;
+      FSplited[PatternCount].Top := PatternHeight * i;
+      FSplited[PatternCount].Right := PatternWidth;
+      FSplited[PatternCount].Bottom := PatternHeight * (i + 1);
+
+      Inc(PatternCount);
+
+    end; // if i >= 1
+
+  end; // for
+end;
+
+procedure TRayAnimatedSprite.Split2();
+ var
+   i: Integer;
+ begin
+
+   SetLength(FSplited, PatternCount + 1);
+
+   for i := 0 to PatternDeltaX - 1 do
+   begin
+
+     if i = 0 then
+     begin
+
+       FSplited[PatternCount].Left := 0;
+       FSplited[PatternCount].Top := 0;
+       FSplited[PatternCount].Right := PatternWidth;
+       FSplited[PatternCount].Bottom := PatternHeight;
+
+       Inc(PatternCount);
+
+     end; // if i = 0
+
+     if i >= 1 then
+     begin
+
+       SetLength(FSplited, PatternCount + 1);
+
+       FSplited[PatternCount].Left := PatternWidth * (i);
+       FSplited[PatternCount].Top := 0;
+       FSplited[PatternCount].Right := PatternWidth * (i + 1);
+       FSplited[PatternCount].Bottom := PatternHeight;
+
+       Inc(PatternCount);
+
+     end; // if i >= 1
+
+   end; // for
+
+end;
+
+procedure TRayAnimatedSprite.Split3();
+ var
+   j: Integer;
+
+   procedure CallSpliter(NextTop, NextHeight: Integer);
+   var
+     i: Integer;
+   begin
+
+     for i := 0 to PatternDeltaX - 1 do
+     begin
+
+       if i = 0 then
+       begin
+
+         SetLength(FSplited, PatternCount + 1);
+
+         FSplited[PatternCount].Left := 0;
+         FSplited[PatternCount].Top := NextTop;
+         FSplited[PatternCount].Right := PatternWidth;
+         FSplited[PatternCount].Bottom := NextHeight;
+
+         Inc(PatternCount);
+
+       end; // if i = 0
+
+       if i >= 1 then
+       begin
+
+         SetLength(FSplited, PatternCount + 1);
+
+         FSplited[PatternCount].Left := PatternWidth * (i);
+         FSplited[PatternCount].Top := NextTop;
+         FSplited[PatternCount].Right := PatternWidth * (i + 1);
+         FSplited[PatternCount].Bottom := NextHeight;
+
+         Inc(PatternCount);
+
+       end; // if i >= 1
+
+     end; // for
+
+   end;
+
+ begin
+
+   for j := 0 to PatternDeltaY - 1 do
+   begin
+
+     if j = 0 then
+     begin
+
+       CallSpliter(0, PatternHeight);
+
+     end
+     else
+     begin
+
+       CallSpliter(PatternHeight * j, PatternHeight * (j + 1));
+
+     end;
+
+   end;
+
+
+end;
+
+procedure TRayAnimatedSprite.Draw();
+var Source: TRectangle;
+    Dest: TRectangle;
+    WH:TVector2;
+    AlphaColor:TColor;
+begin
+   if TextureIndex  <> -1 then
+   begin
+     if Assigned(FEngine) then
+     begin
+        if Visible then
+        begin
+           RectangleSet(@Source,
+           FTexture.Pattern[FTextureIndex].Width * AnimPos,
+           FTexture.Pattern[FTextureIndex].Height * AnimPOs,
+
+           FTexture.Pattern[FTextureIndex].Width ,
+           FTexture.Pattern[FTextureIndex].Height);
+
+           RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+
+           Vector2Set(@WH,FTexture.Pattern[FTextureIndex].Width/2,FTexture.Pattern[FTextureIndex].Height/2);
+           AlphaColor:=White;  AlphaColor.a:=alpha;
+
+           DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, ScaleX, AlphaColor);
+        end;
+     end;
+   end;
+end;
+
+procedure TRayAnimatedSprite.Move(MoveCount: Double);
+begin
+  //inherited Move(MoveCount);
+  if AnimSpeed > 0 then
+  begin
+
+    AnimPos := AnimPos + AnimSpeed;
+    FPatternIndex := Trunc(AnimPos);
+
+    if (Trunc(AnimPos) > AnimStart + AnimCount) then
+    begin
+
+      if (Trunc(AnimPos)) = AnimStart + AnimCount then
+
+        if AnimLooped then
+        begin
+          AnimPos := AnimStart;
+          FPatternIndex := Trunc(AnimPos);
+        end
+        else
+        begin
+          AnimPos := AnimStart + AnimCount - 1;
+          FPatternIndex := Trunc(AnimPos);
+        end;
+    end;
+
+    if FDoAnimated = True then
+    begin
+      if Trunc(AnimPos) >= AnimCount + 1 then
+      begin
+
+        FDoAnimated := False;
+        AnimLooped := False;
+
+        AnimSpeed := 0;
+        AnimCount := 0;
+
+        AnimPos := AnimStart;
+        FPatternIndex := Trunc(AnimPos);
+      end;
+    end;
+
+    if Trunc(AnimPos) < AnimStart then
+    begin
+      AnimPos := AnimStart;
+      FPatternIndex := Trunc(AnimPos);
+    end;
+
+    if Trunc(AnimPos) > AnimCount then
+    begin
+      AnimPos := AnimStart;
+      FPatternIndex := Trunc(AnimPos);
+    end;
+  end; // if AnimSpeed > 0
+end;
+
+procedure TRayAnimatedSprite.DoAnim(Looped: Boolean; Start: Integer;
+  Count: Integer; Speed: Single);
+begin
+  FDoAnimated := True;
+  AnimLooped := Looped;
+  AnimStart := Start;
+  AnimCount := Count;
+  AnimSpeed := Speed;
+end;
+
+constructor TRayAnimatedSprite.Create(Engine: T2DEngine; Texture: TGameTexture);
+begin
+  inherited Create(Engine, Texture);
+  FAnimated := True;
+end;
+
+destructor TRayAnimatedSprite.Destroy;
+var
+  i: Integer;
+begin
+  for i := 0 to PatternCount - 1 do
+  begin
+    FSplited[i].Left := 0;
+    FSplited[i].Top := 0;
+    FSplited[i].Right := 0;
+    FSplited[i].Bottom := 0;
+  end;
+  SetLength(FSplited, 0);
+  inherited Destroy;
+end;
 
 { TRaySprite }
 procedure TRaySprite.SetTextureName(Value: string);
@@ -118,79 +428,20 @@ var Source: TRectangle;
     WH:TVector2;
     AlphaColor:TColor;
 begin
-   if TextureIndex <> -1 then
-  begin
-    if Assigned(FEngine) then
-    begin
-      if X > (FEngine.WorldX) + VisibleArea.Left then
-      begin
-        // pattern
-        if X + Pattern.Right < (FEngine.WorldX) + VisibleArea.Right + 300 then
+   if TextureIndex  <> -1 then
+   begin
+     if Assigned(FEngine) then
+     begin
+        if Visible then
         begin
-          if Y > (FEngine.WorldY) + VisibleArea.Top then
-          begin
-            // pattern
-            if Y + Pattern.Bottom < (FEngine.WorldY) + VisibleArea.Bottom + 300 then
-            begin
-              if Visible then
-              begin
-                if DrawMode = 0 then
-                begin
-                  //Source:=RectangleCreate(0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-                 // Dest:=RectangleCreate( FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-
-                 RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-                 RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-
-                 Vector2Set(@WH,FTexture.Pattern[FTextureIndex].Width/2,FTexture.Pattern[FTextureIndex].Height/2);
-
-                 AlphaColor:=White;  AlphaColor.a:=alpha;
-                 DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, ScaleX, AlphaColor);
-
-             //    DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, AlphaColor);
-                end;
-
-                if DrawMode = 1 then
-                begin
-                {DrawTexture(FTexture.Texture[FTextureIndex],
-                  round(FEngine.FCamera.target.x + X),
-                  round(FEngine.FCamera.target.y + Y),BLACK); }
-               {   fx2d_SetScale(ScaleX, ScaleY);
-                  ssprite2d_Draw(FTexture.Texture[FTextureIndex],
-                    FEngine.FCamera.X + X, FEngine.FCamera.Y + Y,
-                    FTexture.Pattern[FTextureIndex].Width,
-                    FTexture.Pattern[FTextureIndex].Height, Angle, Alpha,
-                    FX2D_SCALE);}
-                end;
-              end;
-            end;
-          end;
+           RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+           RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+           Vector2Set(@WH,FTexture.Pattern[FTextureIndex].Width/2,FTexture.Pattern[FTextureIndex].Height/2);
+           AlphaColor:=White;  AlphaColor.a:=alpha;
+           DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, ScaleX, AlphaColor);
         end;
-      end;
-    end
-    else
-    begin
-      if Visible then
-      begin
-        if DrawMode = 0 then
-        begin
-        {   DrawTexture(FTexture.Texture[FTextureIndex],
-                  round( X),
-                  round( Y),BLACK);}
-          { ssprite2d_Draw(FTexture.Texture[FTextureIndex], X, Y,
-            FTexture.Pattern[FTextureIndex].Width,
-            FTexture.Pattern[FTextureIndex].Height, Angle, Alpha); }
-        end;
-        if DrawMode = 1 then
-        begin
-         {  fx2d_SetScale(ScaleX, ScaleY);
-            ssprite2d_Draw(FTexture.Texture[FTextureIndex], X, Y,
-            FTexture.Pattern[FTextureIndex].Width,
-            FTexture.Pattern[FTextureIndex].Height, Angle, Alpha, FX2D_SCALE); }
-        end;
-      end;
-    end;
-  end;
+     end;
+   end;
 end;
 
 procedure TRaySprite.Move(MoveCount: Double);
@@ -233,23 +484,8 @@ begin
   ScaleX := 1.0;
   ScaleY := 1.0;
   Visible := True; // Displaymode Width/Height
-  VisibleArea := Rect(-300, -300, 800, 600);
-
 end;
 
-constructor TRaySprite.CreateEx(Engine: T2DEngine; Texture: TGameTexture);
-begin
-  FAnimated := False;
-  FTexture := Texture;
-  FEngine := Engine;
-  Pattern.Left := 0;
-  Pattern.Top := 0;
-  Alpha := 255;
-  ScaleX := 1.0;
-  ScaleY := 1.0;
-  Visible := True;
-  VisibleArea := Rect(-300, -300, 800, 600);
-end;
 
 destructor TRaySprite.Destroy;
 begin
@@ -287,7 +523,6 @@ begin
   for i := 0 to Count - 1 do
   begin
     TextureName[i] := '';
-    //Texture[i] := @nil;
     Pattern[i].Height := 0;
     Pattern[i].Width := 0;
   end;
@@ -320,7 +555,7 @@ begin
  for i := 0 to List.Count - 1 do
    begin
     if TRaySprite(List.Items[i]).FAnimated = False then TRaySprite(List.Items[i]).Draw
-    else// TZenAnimatedSprite(List.Items[i]).Draw;
+    else TRayAnimatedSprite(List.Items[i]).Draw;
    end;
 end;
 
@@ -348,9 +583,9 @@ begin
     if TRaySprite(List.Items[i]).FAnimated = False then
        TRaySprite(List.Items[i]).Move(MoveCount)
     else
-     // TZenAnimatedSprite(List.Items[i]).Move(MoveCount);
+      TRayAnimatedSprite(List.Items[i]).Move(MoveCount);
   end;
-  end;
+end;
 
 
 procedure T2DEngine.SetZOrder();

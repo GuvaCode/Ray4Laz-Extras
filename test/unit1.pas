@@ -15,11 +15,11 @@ TGame = class(TRayApplication)
     CamMain: TCamera2D;
     Cam:TCamera3d;
     Engine: T2DEngine;
-    Engine3d:T3DEngine;
+
     Texture: TGameTexture;
     Ground: array of array of TRaySprite;
     test:TRaySprite;
-    plane:T3DModel;
+      Player: TRayAnimatedSprite;
     constructor Create; override;
     procedure Init; override;
     procedure Update; override;
@@ -37,7 +37,7 @@ end;
 
 procedure TGame.Init;
 const
-  MapSize = 2;
+  MapSize = 20;
 var a,b:integer;
 begin
   Engine := T2DEngine.Create;
@@ -46,6 +46,7 @@ begin
   Texture := TGameTexture.Create;
   Texture.LoadFromFile('bg.png', 256, 256);
   Texture.LoadFromFile('1.png', 128, 128);
+  Texture.LoadFromFile('Guest.png', 32, 48);
 
   SetLength(Ground, MapSize + 1, MapSize + 1);
 
@@ -58,7 +59,7 @@ begin
       Ground[a, b].X := a * 256;
       Ground[a, b].Y := b * 256;
       Ground[a, b].Z := 1;
-      Ground[a, b].VisibleArea := Rect(-300, -300, 800, 600);
+    //  Ground[a, b].VisibleArea := Rect(-300, -300, 800, 600);
     end;
   end;
 
@@ -68,38 +69,54 @@ begin
     test.X:=300;
     test.Y:=300;
     test.Z:=100;
-  //  test.Alpha:=120;
+    test.Alpha:=120;
     test.Angle:=20;
 
-    Engine3d:=T3DEngine.Create;
-    plane:=T3DModel.Create(Engine3d,'plane.obj','plane_diffuse.png');
+  Player := TRayAnimatedSprite.Create(Engine, Texture);
+  Player.TextureIndex := 2;
 
-  cam.position := Vector3Create(3.0, 3.0, 3.0);
-  cam.target := Vector3Create(0.0, 1.5, 0.0);
-  cam.up := Vector3Create(0.0, 9.0, 0.0);
-  cam.fovy := 7.0;
-  cam._type := CAMERA_PERSPECTIVE;
-  SetCameraMode(cam, CAMERA_THIRD_PERSON); // Set an orbital camera mode
+  Player.PatternHeight := 48;
+  Player.PatternWidth := 32;
+
+  Player.X := 380;
+  Player.Y := 250;
+  Player.Z := 999;
+  Player.AnimPos := 1;
+
+
+
+
+
+
 end;
 
 procedure TGame.Update;
+const AnimSpeed = 0.999;
 begin
  // Dec(test.Alpha) ;
-  test.Angle:=test.Angle+0.1;
+ // test.Angle:=test.Angle+0.1;
   engine.Move(1);
-  engine3d.Move(1);
+
+
+
+ /// test.X:=test.X+1;
+//  engine.WorldX:=test.X;
+ // camMain.target.x:= engine.WorldX
+ camMain.target.X := PLayer.X - 400;
+ camMain.target.Y := Player.Y - 250;
+// player.Split3;
+        Player.DoAnim(True, 5, 8, AnimSpeed);
 end;
 
 procedure TGame.Render;
 begin
   ClearBackground(blue);
+
  BeginMode2D(camMain);
   engine.Draw;
   EndMode2D();
   /////
-  BeginMode3d(cam);
-  Engine3d.Draw();
-  EndMode3d;
+ DrawFPS(10,10)
 
 end;
 

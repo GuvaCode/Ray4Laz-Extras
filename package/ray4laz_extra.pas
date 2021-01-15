@@ -8,7 +8,7 @@ unit ray4laz_extra;
 interface
 
 uses
-  ray4lazEx_desc, ray_application, ray_sprites, ray_model, LazarusPackageIntf;
+  ray4lazEx_desc, ray_application, ray_sprites, LazarusPackageIntf;
 
 implementation
 

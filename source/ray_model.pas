@@ -1,7 +1,7 @@
 unit ray_model;
 
 {$mode objfpc}{$H+}
-
+ //is test module
 interface
 
 uses
@@ -110,9 +110,9 @@ end;
 procedure T3DModel.Move(DT: Double);
 begin
 
- // FModel.transform:=MatrixRotateXYZ(Vector3Create(DEG2RAD*FAngleX,DEG2RAD*FAngleY,DEG2RAD*FAngleZ));
+  FModel.transform:=MatrixRotateXYZ(Vector3Create(DEG2RAD*FAxisX,DEG2RAD*FAxisY,DEG2RAD*FAxisZ));
    // DEG2RAD
-  // Vector3Set(@FAxis,FAxisX,FAxisY,FAxisZ);
+   Vector3Set(@FAxis,FAxisX,FAxisY,FAxisZ);
 end;
 
 procedure T3DModel.Dead();
