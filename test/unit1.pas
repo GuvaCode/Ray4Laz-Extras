@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  cmem, ray_headers, ray_application, ray_sprites, classes;
+  cmem, ray_headers, ray_application, ray_sprites, ray_model, classes;
 
 type
 TGame = class(TRayApplication)
@@ -13,11 +13,13 @@ TGame = class(TRayApplication)
   protected
   public
     CamMain: TCamera2D;
+    Cam:TCamera3d;
     Engine: T2DEngine;
+    Engine3d:T3DEngine;
     Texture: TGameTexture;
     Ground: array of array of TRaySprite;
-
     test:TRaySprite;
+    plane:T3DModel;
     constructor Create; override;
     procedure Init; override;
     procedure Update; override;
@@ -69,8 +71,15 @@ begin
   //  test.Alpha:=120;
     test.Angle:=20;
 
-  //Engine.Camera.offset.y:=0;
- // Engine.Camera.target.X:=0;
+    Engine3d:=T3DEngine.Create;
+    plane:=T3DModel.Create(Engine3d,'plane.obj','plane_diffuse.png');
+
+  cam.position := Vector3Create(3.0, 3.0, 3.0);
+  cam.target := Vector3Create(0.0, 1.5, 0.0);
+  cam.up := Vector3Create(0.0, 9.0, 0.0);
+  cam.fovy := 7.0;
+  cam._type := CAMERA_PERSPECTIVE;
+  SetCameraMode(cam, CAMERA_THIRD_PERSON); // Set an orbital camera mode
 end;
 
 procedure TGame.Update;
@@ -78,14 +87,20 @@ begin
  // Dec(test.Alpha) ;
   test.Angle:=test.Angle+0.1;
   engine.Move(1);
+  engine3d.Move(1);
 end;
 
 procedure TGame.Render;
 begin
   ClearBackground(blue);
-  BeginMode2D(camMain);
+ BeginMode2D(camMain);
   engine.Draw;
   EndMode2D();
+  /////
+  BeginMode3d(cam);
+  Engine3d.Draw();
+  EndMode3d;
+
 end;
 
 procedure TGame.Shutdown;
