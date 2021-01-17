@@ -3,7 +3,7 @@ unit ray_sprites;
 {$mode objfpc}{$H+}
 interface
 
-uses ray_headers, ray_math, classes;
+uses ray_headers, ray_math, classes,sysutils;
 
 type
   TJumpState = (jsNone, jsJumping, jsFalling);
@@ -293,10 +293,10 @@ begin
         if Visible then
         begin
            RectangleSet(@Source,
-           FTexture.Pattern[FTextureIndex].Width * AnimPos,
-           FTexture.Pattern[FTextureIndex].Height * AnimPOs,
+          FTexture.Pattern[FTextureIndex].Width div Round(AnimPos),
+          FTexture.Pattern[FTextureIndex].Height div Round(AnimPos),
 
-           FTexture.Pattern[FTextureIndex].Width ,
+           FTexture.Pattern[FTextureIndex].Width  ,
            FTexture.Pattern[FTextureIndex].Height);
 
            RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
@@ -308,6 +308,8 @@ begin
         end;
      end;
    end;
+   DrawText(Pchar(inttostr(Trunc(animpos))), 140, 20, 20, BLACK);
+
 end;
 
 procedure TRayAnimatedSprite.Move(MoveCount: Double);

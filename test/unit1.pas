@@ -91,7 +91,7 @@ begin
 end;
 
 procedure TGame.Update;
-const AnimSpeed = 0.999;
+const AnimSpeed = 0.002;
 begin
  // Dec(test.Alpha) ;
  // test.Angle:=test.Angle+0.1;
@@ -104,8 +104,10 @@ begin
  // camMain.target.x:= engine.WorldX
  camMain.target.X := PLayer.X - 400;
  camMain.target.Y := Player.Y - 250;
-// player.Split3;
-        Player.DoAnim(True, 5, 8, AnimSpeed);
+// player.Split();
+ //Player.Split2();
+// player.Split3();
+        Player.DoAnim(True, 1, 4, AnimSpeed);
 end;
 
 procedure TGame.Render;
