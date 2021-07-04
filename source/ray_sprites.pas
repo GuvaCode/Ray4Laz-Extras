@@ -3,7 +3,7 @@ unit ray_sprites;
 {$mode objfpc}{$H+}
 interface
 
-uses ray_headers, ray_math, classes,sysutils;
+uses ray_header, ray_math, classes,sysutils;
 
 type
   TJumpState = (jsNone, jsJumping, jsFalling);

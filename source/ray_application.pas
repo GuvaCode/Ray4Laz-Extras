@@ -5,7 +5,7 @@ unit ray_application;
 interface
 
 uses
-  ray_headers;
+  ray_header;
 
 type
 { TRayApplication }
@@ -92,7 +92,6 @@ procedure TRayApplication.Run;
 begin
   Init;
   Resized;
-
   while not WindowShouldClose() do
   begin
     Update;
@@ -102,7 +101,6 @@ begin
     EndDrawing();
   end;
   Shutdown;
-
 end;
 
 procedure TRayApplication.Terminate;

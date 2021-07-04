@@ -1,7 +1,7 @@
-program myGame;
+program SkyBox;
 
 uses
-    SysUtils, Unit1;
+    SysUtils, mUnit;
 
 
 var Game: TGame;

@@ -5,7 +5,7 @@ unit ray_model;
 interface
 
 uses
-  ray_headers, ray_math, classes;
+  ray_header, ray_math, classes;
 
 type
   TModelDrawMode = (dmNormal, dmEx, dmWires, dmWiresEx);
@@ -33,6 +33,8 @@ type
      property Camera: TCamera read FCamera write SetCamera;
      property WorldX: Single read FWorld.X write SetWorldX;
      property WorldY: Single read FWorld.Y write SetWorldY;
+
+
    end;
 
   { T3DModel }
@@ -62,7 +64,9 @@ type
     procedure Draw();
     procedure Move(DT: Double); virtual;
     procedure Dead();
-    constructor Create(Engine: T3DEngine; ModelFile:String; TextureFile:String); virtual;
+    procedure ModelLoad(FileName: String);
+    procedure ModelLoadTexture(FileName: String);
+    constructor Create(Engine: T3DEngine); virtual;
     destructor Destroy; override;
 
 
@@ -125,14 +129,25 @@ begin
   end;
 end;
 
-constructor T3DModel.Create(Engine: T3DEngine; ModelFile: String;
-  TextureFile: String);
+procedure T3DModel.ModelLoad(FileName: String);
+begin
+  FModel:=LoadModel(PChar(FileName));
+end;
+
+procedure T3DModel.ModelLoadTexture(FileName: String);
+begin
+    //FModel:=LoadModel(PChar(ModelFile));
+  FTexture:= LoadTexture(PChar(FileName));
+  SetMaterialTexture(FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
+end;
+
+constructor T3DModel.Create(Engine: T3DEngine);
 begin
   FEngine := Engine;
   FEngine.List.Add(Self);
-  FModel:=LoadModel(PChar(ModelFile));
-  FTexture:= LoadTexture(PChar(TextureFile));
-  SetMaterialTexture(@FModel.materials[0], MAP_DIFFUSE, FTexture);//todo
+  //FModel:=LoadModel(PChar(ModelFile));
+  //FTexture:= LoadTexture(PChar(TextureFile));
+  //SetMaterialTexture(FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
   FScale:=1.0;
   FDrawMode:=dmNormal;
   FColor:=WHITE;
@@ -174,9 +189,10 @@ begin
   begin
     //BeginMode3d(FCamera);
     T3DModel(List.Items[i]).Draw();
-    DrawGrid(10, 0.5);
+
     //EndMode3d();
   end;
+  DrawGrid(10, 0.5);
   EndMode3d();
 end;
 
@@ -201,7 +217,7 @@ procedure T3DEngine.Move(DT: Double);
 var
   i: Integer;
 begin
-   UpdateCamera(@FCamera); // Update camera
+   UpdateCamera(FCamera); // Update camera
   for i := 0 to List.Count - 1 do
   begin
     T3DModel(List.Items[i]).Move(DT);
@@ -213,12 +229,12 @@ begin
   List := TList.Create;
   DeadList := TList.Create;
 
-  FCamera.position := Vector3Create(3.0, 3.0, 3.0);
-  FCamera.target := Vector3Create(0.0, 1.5, 0.0);
+  FCamera.position := Vector3Create(3.0, 4.0, 0.0);
+  FCamera.target := Vector3Create(0.0, 0.5, 0.0);
   FCamera.up := Vector3Create(0.0, 1.0, 0.0);
-  FCamera.fovy := 65.0;
-  FCamera._type := CAMERA_PERSPECTIVE;
-  SetCameraMode(FCamera, CAMERA_CUSTOM); // Set an orbital camera mode
+  FCamera.fovy := 75.0;
+  FCamera.projection := CAMERA_PERSPECTIVE;
+  SetCameraMode(FCamera, CAMERA_FIRST_PERSON); // Set an orbital camera mode
 end;
 
 destructor T3DEngine.Destroy;

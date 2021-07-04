@@ -5,6 +5,12 @@ temp/*.a
 temp/*.compiled
 temp/
 
+tmp/*.o
+tmp/*.ppu
+tmp/*.a
+tmp/*.compiled
+tmp/
+
 binary/*
 !binary/resources/
 
