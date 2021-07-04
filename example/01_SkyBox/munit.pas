@@ -27,6 +27,9 @@ TGame = class(TRayApplication)
     procedure RenderSkyBox;
 end;
 
+const ShadersPath ='data/shaders/';
+      GfxPath     ='data/gfx/';
+
 implementation
 
 constructor TGame.Create;
@@ -66,13 +69,12 @@ procedure TGame.CreateSkyBox;
 var img: TImage;
     mMap:Integer;
 begin
-   // Load skybox model
    Cube:=GenMeshCube(1.0,1.0,1.0);
    SkyBox:=LoadModelFromMesh(cube);
-   Skybox.materials[0].shader := LoadShader('data/shaders/skybox.vs','data/shaders/skybox.fs');
+   Skybox.materials[0].shader := LoadShader(ShadersPath+'skybox.vs',ShadersPath+'skybox.fs');
    mMap:=MATERIAL_MAP_CUBEMAP;
    SetShaderValue(skybox.materials[0].shader, GetShaderLocation(skybox.materials[0].shader, 'environmentMap'), @mMap , SHADER_UNIFORM_INT);
-   img := LoadImage('data/gfx/skybox/spacebox.png');
+   img := LoadImage(GfxPath+'skybox/spacebox.png');
    skybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture := LoadTextureCubemap(img, CUBEMAP_LAYOUT_AUTO_DETECT);
    UnloadImage(img);
 end;
