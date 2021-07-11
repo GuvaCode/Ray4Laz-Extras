@@ -63,7 +63,7 @@ end;
 
 function TRgfFileUnit.GetInterfaceUsesSection: string;
 begin
-    Result:='cmem, ray_headers, ray_application, math'
+    Result:='cmem, ray_header, ray_application, math'
 end;
 
 function TRgfFileUnit.GetUnitDirectives: string;

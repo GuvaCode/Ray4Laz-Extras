@@ -13,10 +13,16 @@ type
   { T3DEngine }
   T3DEngine = class
    private
+     FGridSlices: longint;
+     FGridSpacing: single;
      FWorld: TVector3;
      FCamera: TCamera;
-
-     procedure SetCamera(Value: TCamera3D);
+     FDrawsGrid: Boolean;
+     //procedure SetCamera(Value: TCamera3D);
+     procedure SetCamera(AValue: TCamera);
+     procedure SetDrawsGrid(AValue: boolean);
+     procedure SetGridSlices(AValue: longint);
+     procedure SetGridSpacing(AValue: single);
      procedure SetWorldX(Value: Single);
      procedure SetWorldY(Value: Single);
    public
@@ -34,7 +40,9 @@ type
      property WorldX: Single read FWorld.X write SetWorldX;
      property WorldY: Single read FWorld.Y write SetWorldY;
 
-
+     property DrawsGrid:boolean read FDrawsGrid write SetDrawsGrid;
+     property GridSlices:longint read FGridSlices write SetGridSlices;
+     property GridSpacing: single read FGridSpacing write SetGridSpacing;
    end;
 
   { T3DModel }
@@ -53,11 +61,13 @@ type
     FScale: Single;
     FScaleEx: TVector3;
     FPosition: TVector3;
+    FAnims : PModelAnimation;
     procedure SetScale(AValue: Single);
   protected
     FEngine: T3DEngine;
     FModel: TModel;
     FTexture: TTexture2d;
+
   public
     IsModelDead: Boolean;
     Visible: Boolean;
@@ -66,6 +76,9 @@ type
     procedure Dead();
     procedure ModelLoad(FileName: String);
     procedure ModelLoadTexture(FileName: String);
+    procedure LoadModelAnim(FileName:String; AnimCoint:integer);
+    procedure UpdateModelAnim(Frame:longint);
+
     constructor Create(Engine: T3DEngine); virtual;
     destructor Destroy; override;
 
@@ -79,6 +92,7 @@ type
     property AngleY: Single read FAngleY write FAngleY;
     property AngleZ: Single read FAngleZ write FAngleZ;
 
+
     property X: Single read FPosition.X write FPosition.X;
     property Y: Single read FPosition.Y write FPosition.Y;
     property Z: Single read FPosition.Z write FPosition.Z;
@@ -86,6 +100,7 @@ type
     property Scale: Single read FScale write SetScale;
     property Color: TColor read FColor write FColor;
     property DrawMode: TModelDrawMode read FDrawMode write FDrawMode;
+    property Anims: PModelAnimation read FAnims write FAnims;
   end;
 
 
@@ -141,6 +156,16 @@ begin
   SetMaterialTexture(FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
 end;
 
+procedure T3DModel.LoadModelAnim(FileName: String; AnimCoint: integer);
+begin
+   FAnims:=LoadModelAnimations(PChar(FileName),AnimCoint);
+end;
+
+procedure T3DModel.UpdateModelAnim(Frame: longint);
+begin
+  UpdateModelAnimation(FModel,FAnims[0],Frame);
+end;
+
 constructor T3DModel.Create(Engine: T3DEngine);
 begin
   FEngine := Engine;
@@ -163,11 +188,26 @@ begin
   inherited Destroy;
 end;
 
-{ T3DEngine }
-
-procedure T3DEngine.SetCamera(Value: TCamera3D);
+procedure T3DEngine.SetCamera(AValue: TCamera);
 begin
-  FCamera := Value; //????????????///
+  FCamera:=AValue;
+end;
+
+procedure T3DEngine.SetDrawsGrid(AValue: boolean);
+begin
+  FDrawsGrid:= AValue;
+end;
+
+procedure T3DEngine.SetGridSlices(AValue: longint);
+begin
+  if FGridSlices=AValue then Exit;
+  FGridSlices:=AValue;
+end;
+
+procedure T3DEngine.SetGridSpacing(AValue: single);
+begin
+  if FGridSpacing=AValue then Exit;
+  FGridSpacing:=AValue;
 end;
 
 procedure T3DEngine.SetWorldX(Value: Single);
@@ -192,7 +232,7 @@ begin
 
     //EndMode3d();
   end;
-  DrawGrid(10, 0.5);
+  if FDrawsGrid then DrawGrid(FGridSlices, FGridSpacing);
   EndMode3d();
 end;
 
@@ -234,7 +274,11 @@ begin
   FCamera.up := Vector3Create(0.0, 1.0, 0.0);
   FCamera.fovy := 75.0;
   FCamera.projection := CAMERA_PERSPECTIVE;
-  SetCameraMode(FCamera, CAMERA_FIRST_PERSON); // Set an orbital camera mode
+  SetCameraMode(FCamera, CAMERA_THIRD_PERSON); // Set an orbital camera mode
+
+  FGridSpacing:=0.5;
+  FGridSlices:=10;
+
 end;
 
 destructor T3DEngine.Destroy;

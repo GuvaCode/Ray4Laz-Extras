@@ -52,7 +52,7 @@ begin
    InitWindow(800, 600, 'raylib [core] - basic window');
 
    SetWindowState(FLAG_VSYNC_HINT);
-   FClearBgColor:= BLACK;
+   FClearBgColor:= WHITE;
 
 
 end;
