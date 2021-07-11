@@ -10,6 +10,9 @@ uses ray_header, ray_math, classes,sysutils;
 type
   TJumpState = (jsNone, jsJumping, jsFalling);
   TFlipState = (fsNormal, fsX , fsY , fsXY);
+  TCollideMode = (cmRectangle, cmCircles, cmPointRec, cmPointCircle);
+
+
 
   { TSpriteEngine }
   TSpriteEngine = class
@@ -53,6 +56,9 @@ type
   TRaySprite = class
   private
     FAnimated: Boolean;
+    FCollideMode: TCollideMode;
+    FCollidePos: TVector2;
+    FCollisioned: Boolean;
     FVector: TVector2;
     FZ: Single;
     FScale: Single;
@@ -62,6 +68,7 @@ type
     FTextureIndex: Integer;
     procedure SetTextureName(Value: string);
     procedure SetTextureIndex(Value: Integer);
+    procedure DoCollision(const Sprite: TRaySprite); virtual;
   public
     FTexture: TGameTexture;
     FlipState : TFlipState;
@@ -77,6 +84,8 @@ type
     procedure Dead();
     procedure SetOrder(Value: Single);
     procedure SetScale(Value: Single);
+    procedure Collision(const Other: TRaySprite); overload; virtual;
+    procedure Collision; overload; virtual;
     constructor Create(Engine: TSpriteEngine; Texture: TGameTexture); virtual;
     destructor Destroy; override;
     property TextureIndex: Integer read FTextureIndex write SetTextureIndex;
@@ -85,18 +94,20 @@ type
     property Y: Single read FVector.Y write FVector.Y;
     property Z: Single read FZ write SetOrder;
     property Scale: Single read FScale write SetScale;
+    property Collisioned: Boolean read FCollisioned write FCollisioned;
+    property CollideMode: TCollideMode read FCollideMode write FCollideMode;
+    property CollidePos: TVector2 read FCollidePos write FCollidePos;
+
   end;
 
 
-    { TRayAnimatedSprite }
-
+  { TRayAnimatedSprite }
   TRayAnimatedSprite = class(TRaySprite)
   protected
     FDoAnimated: Boolean;
     FPatternIndex: Integer;
     FPatternHeight: Integer;
     FPatternWidth: Integer;
-    FLostPos:Single;
     procedure SetPatternHeight(Value: Integer);
     procedure SetPatternWidth(Value: Integer);
   public
@@ -105,10 +116,6 @@ type
     AnimCount: Integer;
     AnimSpeed: Single;
     AnimPos: Single;
-
-    PatternCount: Integer;
-    PatternDeltaX: Integer;
-    PatternDeltaY: Integer;
 
     procedure Draw();
     procedure Move(MoveCount: Double); override;
@@ -294,6 +301,11 @@ begin
   Pattern.Bottom := FTexture.Pattern[FTextureIndex].Width;
 end;
 
+procedure TRaySprite.DoCollision(const Sprite: TRaySprite);
+begin
+
+end;
+
 procedure TRaySprite.Draw();
 var Source: TRectangle;
     Dest: TRectangle;
@@ -344,6 +356,45 @@ begin
   ScaleY := FScale;
 end;
 
+procedure TRaySprite.Collision(const Other: TRaySprite);
+var IsCollide: Boolean;
+begin
+  IsCollide := False;
+  if (FCollisioned) and (Other.FCollisioned) and (not IsSpriteDead)and (not Other.IsSpriteDead) then
+  begin
+
+   if CheckCollisionRecs(RectangleCreate(Other.X-64, Other.Y-64,128,128),RectangleCreate( X-64,Y-64,128,128))
+    then
+    begin
+      DrawRectangle(round(X)-64,Round(y)-64,128,128,Red);
+      DrawRectangle(Round(Other.x)-64,Round(Other.y)-64,128,128,blue);
+      DrawText('Collizion',0,0,10,ColorCreate(0,128,0,255));
+    end
+   else  DrawText('NO Colizion',0,0,10,ColorCreate(0,128,0,255));
+
+
+   //RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+
+
+  end;
+
+
+  //DrawRectangleRec(GetCollisionRec(RectangleCreate(X,Y,128,128),RectangleCreate(Other.X,Other.Y,128,128)),Red);
+
+end;
+
+procedure TRaySprite.Collision;
+  var
+   i: Integer;
+begin
+     if (FEngine<>nil) and (not IsSpriteDead) and (Collisioned) then
+     begin
+          for i:=0 to FEngine.List.Count-1 do
+              Self.Collision(TRaySprite(FEngine.List.Items[i]));
+     end;
+
+end;
+
 constructor TRaySprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);
 begin
   FAnimated := False;
@@ -356,7 +407,7 @@ begin
   ScaleX := 1.0;
   ScaleY := 1.0;
   Scale  := 1.0;
-  Visible := True; // Displaymode Width/Height
+  Visible := True;
 end;
 
 

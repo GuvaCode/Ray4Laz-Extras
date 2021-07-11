@@ -27,7 +27,7 @@ const
   Var Engine:TSpriteEngine;
       GameTexture:TGameTexture;
       Player:TRayAnimatedSprite;
-
+      TestMiku:TRaySprite;
 implementation
 
 
@@ -41,22 +41,30 @@ begin
    Player.TextureIndex:=0;
    Player.X := 380;
    Player.Y := 250;
-   Player.Z := 999;
+   Player.Z := 100;
    Player.FlipState:=fsNormal;
    Player.Scale:=1;
    PLayer.Angle:=0;
+   Player.Collisioned:=true;
+   TestMiku:=TRaySprite.Create(Engine,GameTexture);
+   TestMiku.Collisioned:=true;
+   TestMiku.X:=120;
+   TestMiku.Y:=250;
+   TestMiku.Collisioned:=true;
+   TestMiku.TextureIndex:=0;
+   TestMiku.Z:=99;
    SetTargetFPS(60);
 end;
 
 procedure TGame.Init;
-
 begin
-//  Player.DoAnim(True,0,9,0.280);
+
 end;
 
 procedure TGame.Update;
 begin
-
+   //Player.Collision;
+  TestMiku.Collision;
   if IsKeyDown(KEY_RIGHT) then
    begin
      Player.DoAnim(True,0,7,6);
