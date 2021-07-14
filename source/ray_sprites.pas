@@ -5,21 +5,17 @@ unit ray_sprites;
 {$WARN 5024 off : Parameter "$1" not used}
 interface
 
-uses ray_header, ray_math, classes, sysutils;
+uses ray_header, ray_math, ray_math_ex, classes, sysutils;
 
 type
   TJumpState = (jsNone, jsJumping, jsFalling);
   TFlipState = (fsNormal, fsX , fsY , fsXY);
-  TCollideMethod = (cmRectangle, cmCircle, cmPointRec, cmPointCircle);
-
-
+  TCollideMethod = (cmRectangle, cmCircle, cmPointRec, cmPointCircle, cmPolygon);
 
   { TSpriteEngine }
   TSpriteEngine = class
   private
-    FCamera: TCamera2D;
     FWorld: TVector2;
-    procedure SetCamera(AValue: TCamera2D);
     procedure SetWorldX(Value: Single);
     procedure SetWorldY(Value: Single);
   public
@@ -31,7 +27,6 @@ type
     procedure SetZOrder();
     constructor Create;
     destructor Destroy; override;
-    property Camera: TCamera2D read FCamera write SetCamera;
     property WorldX: Single read FWorld.X write SetWorldX;
     property WorldY: Single read FWorld.Y write SetWorldY;
   end;
@@ -57,11 +52,12 @@ type
   private
     FAnimated: Boolean;
     FCollideMethod: TCollideMethod;
-
+    FCollidePolygon: TRayPolygon;
     FCollidePos: TVector2;
     FCollideRadius: Single;
     FCollideRect: TRectangle;
     FCollisioned: Boolean;
+    FShowCollide: Boolean;
     FVector: TVector2;
     FZ: Single;
     FScale: Single;
@@ -102,6 +98,8 @@ type
     property CollidePos: TVector2 read FCollidePos write FCollidePos;
     property CollideRect: TRectangle read FCollideRect write FCollideRect;
     property CollideRadius: Single read FCollideRadius write FCollideRadius;
+    property CollidePolygon: TRayPolygon read FCollidePolygon write FCollidePolygon;
+    property ShowCollide: Boolean read FShowCollide write FShowCollide;
   end;
 
 
@@ -189,16 +187,19 @@ begin
            end;
 
            RectangleSet(@Dest,
-           FEngine.FCamera.target.x + x ,
-           FEngine.FCamera.target.y + y ,
+          { FEngine.FCamera.target.x +} x ,
+          { FEngine.FCamera.target.y +} y ,
            FTexture.Pattern[FTextureIndex].Width* scale, FTexture.Pattern[FTextureIndex].Height* scale);
 
-           Vector2Set(@Orig,FTexture.Pattern[FTextureIndex].Width/2 * Scale,
-           FTexture.Pattern[FTextureIndex].Height/2 * Scale);
+         //  Vector2Set(@Orig,FTexture.Pattern[FTextureIndex].Width/2 * Scale,
+         //  FTexture.Pattern[FTextureIndex].Height/2 *Scale);
+        ///   Vector2Set(
+         Vector2Set(@Orig,X * Scale, Y * Scale);
 
            AlphaColor:=White; AlphaColor.a:=alpha;
 
            DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest,Orig,Angle,AlphaColor);
+
 
         end;
      end;
@@ -281,6 +282,8 @@ begin
   inherited Destroy;
 end;
 
+
+
 { TRaySprite }
 procedure TRaySprite.SetTextureName(Value: string);
 var i: Integer;
@@ -300,7 +303,6 @@ begin
 end;
 
 procedure TRaySprite.SetTextureIndex(Value: Integer);
-var i: Integer;
 begin
  FTextureIndex := Value;
  if high(FTexture.Pattern) >=0 then
@@ -330,13 +332,31 @@ begin
         if Visible then
         begin
            RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-           RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-           Vector2Set(@WH,FTexture.Pattern[FTextureIndex].Width/2,FTexture.Pattern[FTextureIndex].Height/2);
-           AlphaColor:=White;  AlphaColor.a:=alpha;
-           DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, ScaleX, AlphaColor);
+           RectangleSet(@Dest,X,Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+           Vector2Set(@WH,X,Y);
+           AlphaColor:=White;  AlphaColor.a:=alpha;           DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, Scale, AlphaColor);
+
+
+           if FShowCollide then
+           begin
+            case FCollideMethod of
+            cmRectangle: DrawRectangleRec(Self.CollideRect,RED);
+            cmCircle: DrawCircleV(Self.CollidePos,Self.CollideRadius,RED);
+            //IsCollide:=CheckCollisionCircles(Self.CollidePos,Self.CollideRadius,Other.CollidePos,Other.CollideRadius);
+           // cmPointRec: IsCollide:=CheckCollisionPointRec(Self.CollidePos,Other.CollideRect);
+           // cmPointCircle: IsCollide:=CheckCollisionPointCircle(Self.CollidePos,Other.CollidePos,Other.CollideRadius);
+           // cmPolygon: IsCollide:=OverlapPolygon(Self.CollidePolygon,Other.CollidePolygon);
+            end;
+
+
+
+           end;
+
+
+
         end;
      end;
-   end;
+  end;
 end;
 
 procedure TRaySprite.Move(MoveCount: Double);
@@ -370,15 +390,21 @@ end;
 procedure TRaySprite.Collision(const Other: TRaySprite);
 var IsCollide: Boolean;
 begin
-  IsCollide := False;
+  IsCollide:=False;
   if (FCollisioned) and (Other.FCollisioned) and (not IsSpriteDead)and (not Other.IsSpriteDead) then
   begin
     case FCollideMethod of
-      cmRectangle: Collisioned := CheckCollisionRecs(Self.CollideRect,Other.CollideRect);
-      cmCircle: Collisioned:=CheckCollisionCircles(Self.CollidePos,Self.CollideRadius,Other.CollidePos,Other.CollideRadius);
-      cmPointRec: Collisioned:=CheckCollisionPointRec(Self.CollidePos,Other.CollideRect);
-      cmPointCircle: Collisioned:=CheckCollisionPointCircle(Self.CollidePos,Other.CollidePos,Other.CollideRadius);
+      cmRectangle: IsCollide := CheckCollisionRecs(Self.CollideRect,Other.CollideRect);
+      cmCircle: IsCollide:=CheckCollisionCircles(Self.CollidePos,Self.CollideRadius,Other.CollidePos,Other.CollideRadius);
+      cmPointRec: IsCollide:=CheckCollisionPointRec(Self.CollidePos,Other.CollideRect);
+      cmPointCircle: IsCollide:=CheckCollisionPointCircle(Self.CollidePos,Other.CollidePos,Other.CollideRadius);
+      cmPolygon: IsCollide:=OverlapPolygon(Self.CollidePolygon,Other.CollidePolygon);
     end;
+    if IsCollide then
+     begin
+      DoCollision(Other);
+      Other.DoCollision(Self);
+     end;
   end;
 end;
 
@@ -456,6 +482,7 @@ begin
     Pattern[i].Height := 0;
     Pattern[i].Width := 0;
     UnloadTexture(Texture[i]);
+    TraceLog(LOG_INFO, ModuleName+'Unload texture');
   end;
   SetLength(TextureName, 0);
   SetLength(Texture, 0);
@@ -463,12 +490,6 @@ begin
   Count := 0;
   TraceLog(LOG_INFO, ModuleName+'Game texture destroy');
   inherited Destroy;
-end;
-
-{ TSpriteEngine }
-procedure TSpriteEngine.SetCamera(AValue: TCamera2D);
-begin
-  FCamera := AValue;
 end;
 
 procedure TSpriteEngine.SetWorldX(Value: Single);
@@ -545,7 +566,6 @@ constructor TSpriteEngine.Create;
 begin
   List := TList.Create;
   DeadList := TList.Create;
-  FCamera.target.x:=0;
 end;
 
 destructor TSpriteEngine.Destroy;
