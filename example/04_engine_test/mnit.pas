@@ -90,6 +90,8 @@ end;
 procedure TGame.Render;
 begin
   Engine.Draw();
+  //DrawPoly((Vector2){screenWidth/4*3, 320}, 6, 80, 0, BROWN);
+  DrawPoly(Vector2Create(100,100),4,80,12,Blue);
 end;
 
 procedure TGame.Shutdown;

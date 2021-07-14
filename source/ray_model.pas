@@ -9,18 +9,23 @@ uses
 
 type
   TModelDrawMode = (dmNormal, dmEx, dmWires, dmWiresEx);
+  TModelEngineCameraMode = (cmCustom, cmFree, cmOrbital, cmFirstPerson, cmThirdPerson);
 
-  { T3DEngine }
-  T3DEngine = class
+  { TModelEngine }
+  TModelEngine = class
    private
+     FEngineCameraMode: TModelEngineCameraMode;
+     FEngineCameraPosition: TVector3;
      FGridSlices: longint;
      FGridSpacing: single;
      FWorld: TVector3;
      FCamera: TCamera;
      FDrawsGrid: Boolean;
-     //procedure SetCamera(Value: TCamera3D);
+
      procedure SetCamera(AValue: TCamera);
      procedure SetDrawsGrid(AValue: boolean);
+     procedure SetEngineCameraMode(AValue: TModelEngineCameraMode);
+     procedure SetEngineCameraPosition(AValue: TVector3);
      procedure SetGridSlices(AValue: longint);
      procedure SetGridSpacing(AValue: single);
      procedure SetWorldX(Value: Single);
@@ -31,22 +36,24 @@ type
 
      procedure Draw();
      procedure ClearDeadModel;
-     procedure Move(DT: Double);
+     procedure Move(MoveCount: Double);
 
      constructor Create;
      destructor Destroy; override;
 
      property Camera: TCamera read FCamera write SetCamera;
+
      property WorldX: Single read FWorld.X write SetWorldX;
      property WorldY: Single read FWorld.Y write SetWorldY;
-
      property DrawsGrid:boolean read FDrawsGrid write SetDrawsGrid;
      property GridSlices:longint read FGridSlices write SetGridSlices;
      property GridSpacing: single read FGridSpacing write SetGridSpacing;
-   end;
+     property EngineCameraMode: TModelEngineCameraMode read FEngineCameraMode write SetEngineCameraMode;
+     property EngineCameraPosition: TVector3 read FEngineCameraPosition write SetEngineCameraPosition;
+  end;
 
-  { T3DModel }
-  T3DModel = class
+  { T3dModel }
+  T3dModel = class
   private
     FAngle: Single;
     FAngleX: Single;
@@ -64,22 +71,21 @@ type
     FAnims : PModelAnimation;
     procedure SetScale(AValue: Single);
   protected
-    FEngine: T3DEngine;
+    FEngine: TModelEngine;
     FModel: TModel;
     FTexture: TTexture2d;
-
   public
     IsModelDead: Boolean;
     Visible: Boolean;
     procedure Draw();
-    procedure Move(DT: Double); virtual;
+    procedure Move(MoveCount: Double); virtual;
     procedure Dead();
-    procedure ModelLoad(FileName: String);
-    procedure ModelLoadTexture(FileName: String);
-    procedure LoadModelAnim(FileName:String; AnimCoint:integer);
-    procedure UpdateModelAnim(Frame:longint);
+    procedure Load3dModel(FileName: String);
+    procedure Load3dModelTexture(FileName: String);
+    procedure Load3dModelAnimations(FileName:String; AnimCoint:integer);
+    procedure Update3dModelAnimations(Frame:longint);
 
-    constructor Create(Engine: T3DEngine); virtual;
+    constructor Create(Engine: TModelEngine); virtual;
     destructor Destroy; override;
 
 
@@ -106,16 +112,16 @@ type
 
 implementation
 
-{ T3DModel }
+{ T3dModel }
 
-procedure T3DModel.SetScale(AValue: Single);
+procedure T3dModel.SetScale(AValue: Single);
 begin
   if FScale=AValue then Exit;
   FScale:=AValue;
   Vector3Set(@FScaleEx,FScale,FScale,FScale);
 end;
 
-procedure T3DModel.Draw();
+procedure T3dModel.Draw();
 begin
   if Assigned(FEngine) then
     case FDrawMode of
@@ -126,15 +132,14 @@ begin
     end;
 end;
 
-procedure T3DModel.Move(DT: Double);
+procedure T3dModel.Move(MoveCount: Double);
 begin
-
-  FModel.transform:=MatrixRotateXYZ(Vector3Create(DEG2RAD*FAxisX,DEG2RAD*FAxisY,DEG2RAD*FAxisZ));
+   FModel.transform:=MatrixRotateXYZ(Vector3Create(DEG2RAD*FAxisX,DEG2RAD*FAxisY,DEG2RAD*FAxisZ));
    // DEG2RAD
    Vector3Set(@FAxis,FAxisX,FAxisY,FAxisZ);
 end;
 
-procedure T3DModel.Dead();
+procedure T3dModel.Dead();
 begin
    if IsModelDead = False then
   begin
@@ -144,35 +149,31 @@ begin
   end;
 end;
 
-procedure T3DModel.ModelLoad(FileName: String);
+procedure T3dModel.Load3dModel(FileName: String);
 begin
   FModel:=LoadModel(PChar(FileName));
 end;
 
-procedure T3DModel.ModelLoadTexture(FileName: String);
+procedure T3dModel.Load3dModelTexture(FileName: String);
 begin
-    //FModel:=LoadModel(PChar(ModelFile));
   FTexture:= LoadTexture(PChar(FileName));
   SetMaterialTexture(FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
 end;
 
-procedure T3DModel.LoadModelAnim(FileName: String; AnimCoint: integer);
+procedure T3dModel.Load3dModelAnimations(FileName: String; AnimCoint: integer);
 begin
    FAnims:=LoadModelAnimations(PChar(FileName),AnimCoint);
 end;
 
-procedure T3DModel.UpdateModelAnim(Frame: longint);
+procedure T3dModel.Update3dModelAnimations(Frame: longint);
 begin
   UpdateModelAnimation(FModel,FAnims[0],Frame);
 end;
 
-constructor T3DModel.Create(Engine: T3DEngine);
+constructor T3dModel.Create(Engine: TModelEngine);
 begin
   FEngine := Engine;
   FEngine.List.Add(Self);
-  //FModel:=LoadModel(PChar(ModelFile));
-  //FTexture:= LoadTexture(PChar(TextureFile));
-  //SetMaterialTexture(FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
   FScale:=1.0;
   FDrawMode:=dmNormal;
   FColor:=WHITE;
@@ -183,60 +184,84 @@ begin
   FAngleX:=0.0;
 end;
 
-destructor T3DModel.Destroy;
+destructor T3dModel.Destroy;
 begin
+  UnloadTexture(Self.FTexture);
+  UnloadModel(Self.FModel);
   inherited Destroy;
 end;
 
-procedure T3DEngine.SetCamera(AValue: TCamera);
+procedure TModelEngine.SetCamera(AValue: TCamera);
 begin
   FCamera:=AValue;
 end;
 
-procedure T3DEngine.SetDrawsGrid(AValue: boolean);
+
+
+
+procedure TModelEngine.SetDrawsGrid(AValue: boolean);
 begin
   FDrawsGrid:= AValue;
 end;
 
-procedure T3DEngine.SetGridSlices(AValue: longint);
+procedure TModelEngine.SetEngineCameraMode(AValue: TModelEngineCameraMode);
+begin
+  if FEngineCameraMode=AValue then Exit;
+  FEngineCameraMode:=AValue;
+  case FEngineCameraMode of
+    cmCustom         :SetCameraMode(FCamera, CAMERA_CUSTOM);
+    cmFree           :SetCameraMode(FCamera, CAMERA_FREE);
+    cmOrbital        :SetCameraMode(FCamera, CAMERA_ORBITAL);
+    cmFirstPerson    :SetCameraMode(FCamera, CAMERA_FIRST_PERSON);
+    cmThirdPerson    :SetCameraMode(FCamera, CAMERA_THIRD_PERSON);
+  end;
+
+end;
+
+procedure TModelEngine.SetEngineCameraPosition(AValue: TVector3);
+begin
+ // if FEngineCameraPosition=AValue then Exit;
+  FEngineCameraPosition:=AValue;
+//  FCamera.position:=FEngineCameraPosition;
+  FCamera.target:=FEngineCameraPosition;
+end;
+
+procedure TModelEngine.SetGridSlices(AValue: longint);
 begin
   if FGridSlices=AValue then Exit;
   FGridSlices:=AValue;
 end;
 
-procedure T3DEngine.SetGridSpacing(AValue: single);
+procedure TModelEngine.SetGridSpacing(AValue: single);
 begin
   if FGridSpacing=AValue then Exit;
   FGridSpacing:=AValue;
 end;
 
-procedure T3DEngine.SetWorldX(Value: Single);
+procedure TModelEngine.SetWorldX(Value: Single);
 begin
   FWorld.X := Value;
 end;
 
-procedure T3DEngine.SetWorldY(Value: Single);
+procedure TModelEngine.SetWorldY(Value: Single);
 begin
   FWorld.Y := Value;
 end;
 
-procedure T3DEngine.Draw();
+procedure TModelEngine.Draw();
 var
   i: Integer;
 begin
   BeginMode3d(FCamera);
   for i := 0 to List.Count - 1 do
   begin
-    //BeginMode3d(FCamera);
-    T3DModel(List.Items[i]).Draw();
-
-    //EndMode3d();
+    T3dModel(List.Items[i]).Draw();
   end;
   if FDrawsGrid then DrawGrid(FGridSlices, FGridSpacing);
   EndMode3d();
 end;
 
-procedure T3DEngine.ClearDeadModel;
+procedure TModelEngine.ClearDeadModel;
 var
   i: Integer;
 begin
@@ -244,50 +269,47 @@ begin
   begin
     if DeadList.Count >= 1 then
     begin
-      if T3DModel(DeadList.Items[i]).IsModelDead = True then
+      if T3dModel(DeadList.Items[i]).IsModelDead = True then
       begin
-        T3DModel(DeadList.Items[i]).FEngine.List.Remove(DeadList.Items[i]);
+        T3dModel(DeadList.Items[i]).FEngine.List.Remove(DeadList.Items[i]);
       end;
     end;
   end;
   DeadList.Clear;
 end;
 
-procedure T3DEngine.Move(DT: Double);
+procedure TModelEngine.Move(MoveCount: Double);
 var
   i: Integer;
 begin
    UpdateCamera(FCamera); // Update camera
   for i := 0 to List.Count - 1 do
   begin
-    T3DModel(List.Items[i]).Move(DT);
+    T3dModel(List.Items[i]).Move(MoveCount);
   end;
 end;
 
-constructor T3DEngine.Create;
+constructor TModelEngine.Create;
 begin
   List := TList.Create;
   DeadList := TList.Create;
-
   FCamera.position := Vector3Create(3.0, 4.0, 0.0);
   FCamera.target := Vector3Create(0.0, 0.5, 0.0);
   FCamera.up := Vector3Create(0.0, 1.0, 0.0);
   FCamera.fovy := 75.0;
   FCamera.projection := CAMERA_PERSPECTIVE;
-  SetCameraMode(FCamera, CAMERA_THIRD_PERSON); // Set an orbital camera mode
-
+  SetEngineCameraMode(cmCustom);
   FGridSpacing:=0.5;
   FGridSlices:=10;
-
 end;
 
-destructor T3DEngine.Destroy;
+destructor TModelEngine.Destroy;
 var
   i: Integer;
 begin
   for i := 0 to List.Count - 1 do
   begin
-    T3DModel(List.Items[i]).Destroy;
+    T3dModel(List.Items[i]).Destroy;
   end;
   List.Destroy;
   DeadList.Destroy;

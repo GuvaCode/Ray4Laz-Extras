@@ -5,12 +5,12 @@ unit ray_sprites;
 {$WARN 5024 off : Parameter "$1" not used}
 interface
 
-uses ray_header, ray_math, classes,sysutils;
+uses ray_header, ray_math, classes, sysutils;
 
 type
   TJumpState = (jsNone, jsJumping, jsFalling);
   TFlipState = (fsNormal, fsX , fsY , fsXY);
-  TCollideMode = (cmRectangle, cmCircles, cmPointRec, cmPointCircle);
+  TCollideMethod = (cmRectangle, cmCircle, cmPointRec, cmPointCircle);
 
 
 
@@ -56,8 +56,11 @@ type
   TRaySprite = class
   private
     FAnimated: Boolean;
-    FCollideMode: TCollideMode;
+    FCollideMethod: TCollideMethod;
+
     FCollidePos: TVector2;
+    FCollideRadius: Single;
+    FCollideRect: TRectangle;
     FCollisioned: Boolean;
     FVector: TVector2;
     FZ: Single;
@@ -95,9 +98,10 @@ type
     property Z: Single read FZ write SetOrder;
     property Scale: Single read FScale write SetScale;
     property Collisioned: Boolean read FCollisioned write FCollisioned;
-    property CollideMode: TCollideMode read FCollideMode write FCollideMode;
+    property CollideMethod: TCollideMethod read FCollideMethod write FCollideMethod;
     property CollidePos: TVector2 read FCollidePos write FCollidePos;
-
+    property CollideRect: TRectangle read FCollideRect write FCollideRect;
+    property CollideRadius: Single read FCollideRadius write FCollideRadius;
   end;
 
 
@@ -129,6 +133,7 @@ type
     property PatternWidth: Integer read FPatternWidth write SetPatternWidth;
   end;
 
+   const ModuleName = 'RAY_SPRITES: ';
 
 implementation
 
@@ -295,10 +300,16 @@ begin
 end;
 
 procedure TRaySprite.SetTextureIndex(Value: Integer);
+var i: Integer;
 begin
-  FTextureIndex := Value;
-  Pattern.Right := FTexture.Pattern[FTextureIndex].Height;
-  Pattern.Bottom := FTexture.Pattern[FTextureIndex].Width;
+ FTextureIndex := Value;
+ if high(FTexture.Pattern) >=0 then
+ begin
+ Pattern.Right := FTexture.Pattern[FTextureIndex].Height;
+ Pattern.Bottom := FTexture.Pattern[FTextureIndex].Width;
+ end else
+    TraceLog(LOG_ERROR,PChar(ModuleName+'The texture index('+
+    inttostr(Value)+') does not exist'));
 end;
 
 procedure TRaySprite.DoCollision(const Sprite: TRaySprite);
@@ -362,25 +373,13 @@ begin
   IsCollide := False;
   if (FCollisioned) and (Other.FCollisioned) and (not IsSpriteDead)and (not Other.IsSpriteDead) then
   begin
-
-   if CheckCollisionRecs(RectangleCreate(Other.X-64, Other.Y-64,128,128),RectangleCreate( X-64,Y-64,128,128))
-    then
-    begin
-      DrawRectangle(round(X)-64,Round(y)-64,128,128,Red);
-      DrawRectangle(Round(Other.x)-64,Round(Other.y)-64,128,128,blue);
-      DrawText('Collizion',0,0,10,ColorCreate(0,128,0,255));
-    end
-   else  DrawText('NO Colizion',0,0,10,ColorCreate(0,128,0,255));
-
-
-   //RectangleSet(@Dest,FEngine.FCamera.target.x + X,FEngine.FCamera.target.y + Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-
-
+    case FCollideMethod of
+      cmRectangle: Collisioned := CheckCollisionRecs(Self.CollideRect,Other.CollideRect);
+      cmCircle: Collisioned:=CheckCollisionCircles(Self.CollidePos,Self.CollideRadius,Other.CollidePos,Other.CollideRadius);
+      cmPointRec: Collisioned:=CheckCollisionPointRec(Self.CollidePos,Other.CollideRect);
+      cmPointCircle: Collisioned:=CheckCollisionPointCircle(Self.CollidePos,Other.CollidePos,Other.CollideRadius);
+    end;
   end;
-
-
-  //DrawRectangleRec(GetCollisionRec(RectangleCreate(X,Y,128,128),RectangleCreate(Other.X,Other.Y,128,128)),Red);
-
 end;
 
 procedure TRaySprite.Collision;
@@ -397,6 +396,8 @@ end;
 
 constructor TRaySprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);
 begin
+  if (Assigned(Engine)) and (Assigned(Texture)) then
+  begin
   FAnimated := False;
   FEngine := Engine;
   FEngine.List.Add(Self);
@@ -408,8 +409,12 @@ begin
   ScaleY := 1.0;
   Scale  := 1.0;
   Visible := True;
+  TraceLog(LOG_INFO, ModuleName+'Sprite engine created successfully');
+  end else
+   begin
+     TraceLog(LOG_ERROR, ModuleName+'No SpriteEngine or Game Texture was created.');
+   end;
 end;
-
 
 destructor TRaySprite.Destroy;
 begin
@@ -422,6 +427,7 @@ begin
    if not fileexists(PChar(FileName)) then
   begin
     Result := False;
+    TraceLog(LOG_ERROR,PChar( ModuleName+'File '+FileName+' no exits.'));
     Exit;
   end;
   SetLength(Texture, Count + 1);
@@ -432,11 +438,12 @@ begin
   Pattern[Count - 1].Height := Height;
   Pattern[Count - 1].Width := Width;
   Texture[Count - 1] := LoadTexture(PChar(FileName));
-  Result := True
+  Result := True;
 end;
 
 constructor TGameTexture.Create;
 begin
+  TraceLog(LOG_INFO, ModuleName+'Game texture created successfully');
 end;
 
 destructor TGameTexture.Destroy;
@@ -454,6 +461,7 @@ begin
   SetLength(Texture, 0);
   SetLength(Pattern, 0);
   Count := 0;
+  TraceLog(LOG_INFO, ModuleName+'Game texture destroy');
   inherited Destroy;
 end;
 
@@ -547,6 +555,7 @@ begin
   List.Destroy;
   DeadList.Destroy;
   inherited Destroy;
+
 end;
 
 end.
