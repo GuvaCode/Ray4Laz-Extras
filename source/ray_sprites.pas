@@ -156,7 +156,7 @@ var Source: TRectangle;
     ox,oy:single;
     FramesPerLine: integer;
     NumLines: integer;
-
+    i: integer;
 begin
    if TextureIndex  <> -1 then
    begin
@@ -164,6 +164,17 @@ begin
      begin
         if Visible then
         begin
+
+        if FShowCollide then
+            case FCollideMethod of
+             cmRectangle: DrawRectangleRec(Self.CollideRect,RED);
+             cmCircle: DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
+             cmPolygon:
+                    for i:=0 to Length(FCollidePolygon) -1 do
+                    DrawPixelV(FCollidePolygon[i],RED);
+                    //DrawPixel(FCollidePolygon[i].x,FCollidePolygon[i].y,RED);
+            end;
+
          FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;
          NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;
          ox := (Round(AnimPos) mod FramesPerLine) * FTexture.Pattern[FTextureIndex].Width;
@@ -190,17 +201,11 @@ begin
           { FEngine.FCamera.target.x +} x ,
           { FEngine.FCamera.target.y +} y ,
            FTexture.Pattern[FTextureIndex].Width* scale, FTexture.Pattern[FTextureIndex].Height* scale);
-
          //  Vector2Set(@Orig,FTexture.Pattern[FTextureIndex].Width/2 * Scale,
          //  FTexture.Pattern[FTextureIndex].Height/2 *Scale);
-        ///   Vector2Set(
-         Vector2Set(@Orig,X * Scale, Y * Scale);
-
+           Vector2Set(@Orig,X * Scale, Y * Scale);
            AlphaColor:=White; AlphaColor.a:=alpha;
-
            DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest,Orig,Angle,AlphaColor);
-
-
         end;
      end;
    end;
@@ -282,8 +287,6 @@ begin
   inherited Destroy;
 end;
 
-
-
 { TRaySprite }
 procedure TRaySprite.SetTextureName(Value: string);
 var i: Integer;
@@ -324,6 +327,7 @@ var Source: TRectangle;
     Dest: TRectangle;
     WH:TVector2;
     AlphaColor:TColor;
+    i: integer;
 begin
    if TextureIndex  <> -1 then
    begin
@@ -331,33 +335,25 @@ begin
      begin
         if Visible then
         begin
+          if FShowCollide then
+            case FCollideMethod of
+             cmRectangle: DrawRectangleRec(Self.CollideRect,RED);
+             cmCircle: DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
+             cmPolygon:
+                    for i:=0 to Length(FCollidePolygon) -1 do
+                    DrawPixelV(FCollidePolygon[i],RED);
+                    //DrawPixel(FCollidePolygon[i].x,FCollidePolygon[i].y,RED);
+            end;
            RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
            RectangleSet(@Dest,X,Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
            Vector2Set(@WH,X,Y);
-           AlphaColor:=White;  AlphaColor.a:=alpha;           DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, Scale, AlphaColor);
-
-
-           if FShowCollide then
-           begin
-            case FCollideMethod of
-            cmRectangle: DrawRectangleRec(Self.CollideRect,RED);
-            cmCircle: DrawCircleV(Self.CollidePos,Self.CollideRadius,RED);
-            //IsCollide:=CheckCollisionCircles(Self.CollidePos,Self.CollideRadius,Other.CollidePos,Other.CollideRadius);
-           // cmPointRec: IsCollide:=CheckCollisionPointRec(Self.CollidePos,Other.CollideRect);
-           // cmPointCircle: IsCollide:=CheckCollisionPointCircle(Self.CollidePos,Other.CollidePos,Other.CollideRadius);
-           // cmPolygon: IsCollide:=OverlapPolygon(Self.CollidePolygon,Other.CollidePolygon);
-            end;
-
-
-
+           AlphaColor:=White;  AlphaColor.a:=alpha;
+           DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, Scale, AlphaColor);
            end;
-
-
-
         end;
      end;
   end;
-end;
+
 
 procedure TRaySprite.Move(MoveCount: Double);
 begin
