@@ -12,8 +12,8 @@ type
   TFlipState = (fsNormal, fsX , fsY , fsXY);
   TCollideMethod = (cmRectangle, cmCircle, cmPointRec, cmPointCircle, cmPolygon);
 
-  { TSpriteEngine }
-  TSpriteEngine = class
+  { TRaySpriteEngine }
+  TRaySpriteEngine = class
   private
     FWorld: TVector2;
     procedure SetWorldX(Value: Single);
@@ -35,8 +35,8 @@ type
     Height, Width: Integer;
   end;
 
-  { TGameTexture }
-  TGameTexture = class
+  { TRayGameTexture }
+  TRayGameTexture = class
   public
     Count: Integer;
     TextureName: array of string;
@@ -58,26 +58,23 @@ type
     FCollideRect: TRectangle;
     FCollisioned: Boolean;
     FShowCollide: Boolean;
-    FVector: TVector2;
+    FPositionV: TVector2;
     FZ: Single;
     FScale: Single;
-    procedure SetX(AValue: Single);
-    procedure SetY(AValue: Single);
   protected
-    FEngine: TSpriteEngine;
+    FEngine: TRaySpriteEngine;
     FTextureName: string;
     FTextureIndex: Integer;
     procedure SetTextureName(Value: string);
     procedure SetTextureIndex(Value: Integer);
     procedure DoCollision(const Sprite: TRaySprite); virtual;
   public
-    FTexture: TGameTexture;
+    FTexture: TRayGameTexture;
     FlipState : TFlipState;
     Alpha: Byte;
     Angle: Single;
     IsSpriteDead: Boolean;
     DrawMode: Integer;
-    ScaleX, ScaleY: Single;
     Visible: Boolean;
     Pattern: TNPatchInfo;
     procedure Draw();
@@ -87,12 +84,12 @@ type
     procedure SetScale(Value: Single);
     procedure Collision(const Other: TRaySprite); overload; virtual;
     procedure Collision; overload; virtual;
-    constructor Create(Engine: TSpriteEngine; Texture: TGameTexture); virtual;
+    constructor Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture); virtual;
     destructor Destroy; override;
     property TextureIndex: Integer read FTextureIndex write SetTextureIndex;
     property TextureName: string read FTextureName write SetTextureName;
-    property X: Single read FVector.X write SetX;
-    property Y: Single read FVector.Y write SetY;
+    property X: Single read FPositionV.X write FPositionV.X;
+    property Y: Single read FPositionV.Y write FPositionV.Y;
     property Z: Single read FZ write SetOrder;
     property Scale: Single read FScale write SetScale;
     property Collisioned: Boolean read FCollisioned write FCollisioned;
@@ -126,7 +123,7 @@ type
 
     procedure DoAnim(Looped: Boolean; Start: Integer; Count: Integer; Speed: Single);
 
-    constructor Create(Engine: TSpriteEngine; Texture: TGameTexture); override;
+    constructor Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture); override;
     destructor Destroy; override;
 
     property PatternHeight: Integer read FPatternHeight write SetPatternHeight;
@@ -158,6 +155,7 @@ var Source: TRectangle;
     ox,oy:single;
     FramesPerLine: integer;
     NumLines: integer;
+    MaxNum:integer;
     i: integer;
 begin
    if TextureIndex  <> -1 then
@@ -179,12 +177,21 @@ begin
 
          FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;
          NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;
+         MaxNum:=0;
+
          ox := (Round(AnimPos) mod FramesPerLine) * FTexture.Pattern[FTextureIndex].Width;
 
-           if (Round(AnimPos) >= FramesPerLine)  then
+         oy := 3  * FTexture.Pattern[FTextureIndex].Height;
+
+         //(Round(AnimPos) div NumLines) * FTexture.Pattern[FTextureIndex].Height;
+
+        if (Round(AnimPos) >= FramesPerLine) and (MaxNum <= NumLines) then
            begin
             {$WARNINGS OFF}
-             oy:=oy + FTexture.Pattern[FTextureIndex].Height;
+
+           //  Inc(MaxNum);
+            // if MaxNum>=4 then MaxNum:=0;
+             oy:=oy * FTexture.Pattern[FTextureIndex].Height;
             {$WARNINGS ON}
            end;
 
@@ -203,8 +210,8 @@ begin
           { FEngine.FCamera.target.x +} x ,
           { FEngine.FCamera.target.y +} y ,
            FTexture.Pattern[FTextureIndex].Width* scale, FTexture.Pattern[FTextureIndex].Height* scale);
-         //  Vector2Set(@Orig,FTexture.Pattern[FTextureIndex].Width/2 * Scale,
-         //  FTexture.Pattern[FTextureIndex].Height/2 *Scale);
+          // Vector2Set(@Orig,FTexture.Pattern[FTextureIndex].Width/2 * Scale,
+           //FTexture.Pattern[FTextureIndex].Height/2 *Scale);
           // Vector2Set(@Orig,X * Scale, Y * Scale);
            Vector2Set(@Orig,0 * Scale, 0 * Scale);
            AlphaColor:=White; AlphaColor.a:=alpha;
@@ -278,7 +285,7 @@ begin
   AnimSpeed := Speed;
 end;
 
-constructor TRayAnimatedSprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);
+constructor TRayAnimatedSprite.Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture);
 begin
   inherited Create(Engine, Texture);
   FAnimated := True;
@@ -290,15 +297,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TRaySprite.SetX(AValue: Single);
-begin
-  FVector.x:=AValue;
-end;
 
-procedure TRaySprite.SetY(AValue: Single);
-begin
-  FVector.y:=AValue;
-end;
 
 { TRaySprite }
 procedure TRaySprite.SetTextureName(Value: string);
@@ -349,35 +348,35 @@ begin
         if Visible then
         begin
           if FShowCollide then
-            case FCollideMethod of
+
+          case FCollideMethod of
              cmRectangle: DrawRectangleRec(Self.CollideRect,RED);
-             cmCircle:
-               begin
-               DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
-               //DrawCircle(rOUND(Self.X),Round(Self.Y),Self.Pattern.bottom,RED);
-               end;
+             cmCircle: DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
              cmPolygon:
                     for i:=0 to Length(FCollidePolygon) -1 do
                     DrawPixelV(FCollidePolygon[i],RED);
-                    //DrawPixel(FCollidePolygon[i].x,FCollidePolygon[i].y,RED);
             end;
 
+             case FlipState of
+            fsNormal :
+              RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
+            fsX:
+              RectangleSet(@Source,0,0,-FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
+            fsY:
+              RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width,-FTexture.Pattern[FTextureIndex].Height);
+            fsXY:
+              RectangleSet(@Source,0,0,-FTexture.Pattern[FTextureIndex].Width,-FTexture.Pattern[FTextureIndex].Height);
+           end;
 
-          RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+           RectangleSet(@Dest,X,Y,
+           FTexture.Pattern[FTextureIndex].Width*Scale,
+           FTexture.Pattern[FTextureIndex].Height*Scale);
 
-          RectangleSet(@Dest,Self.X,Self.Y,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+           WH:=Vector2Create(0,0);
+           AlphaColor:=White;  AlphaColor.a:=alpha;
 
-
-             WH:=Vector2Create(0 , 0);
-
-             AlphaColor:=White;  AlphaColor.a:=alpha;
-
-           DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, Scale, AlphaColor);
-
-       //    DrawTexturePro(FTexture.Texture[FTextureIndex],Source,Dest,WH,Angle,AlphaColor);
-
-
-        end;
+           DrawTexturePro(FTexture.Texture[FTextureIndex],Source,Dest,WH,Angle,AlphaColor);
+         end;
         end;
      end;
   end;
@@ -407,8 +406,6 @@ end;
 procedure TRaySprite.SetScale(Value: Single);
 begin
   FScale := Value;
-  ScaleX := FScale;
-  ScaleY := FScale;
 end;
 
 procedure TRaySprite.Collision(const Other: TRaySprite);
@@ -444,7 +441,7 @@ begin
 
 end;
 
-constructor TRaySprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);
+constructor TRaySprite.Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture);
 begin
   if (Assigned(Engine)) and (Assigned(Texture)) then
   begin
@@ -455,8 +452,6 @@ begin
   Pattern.Left := 0;
   Pattern.Top := 0;
   Alpha := 255;
-  ScaleX := 1.0;
-  ScaleY := 1.0;
   Scale  := 1.0;
   Visible := True;
   TraceLog(LOG_INFO, ModuleName+'Sprite engine created successfully');
@@ -471,8 +466,8 @@ begin
   inherited Destroy;
 end;
 
-{ TGameTexture }
-function TGameTexture.LoadFromFile(FileName: String; Width, Height: Integer): Boolean;
+{ TRayGameTexture }
+function TRayGameTexture.LoadFromFile(FileName: String; Width, Height: Integer): Boolean;
 begin
    if not fileexists(PChar(FileName)) then
   begin
@@ -491,12 +486,12 @@ begin
   Result := True;
 end;
 
-constructor TGameTexture.Create;
+constructor TRayGameTexture.Create;
 begin
   TraceLog(LOG_INFO, ModuleName+'Game texture created successfully');
 end;
 
-destructor TGameTexture.Destroy;
+destructor TRayGameTexture.Destroy;
 var
   i: Integer;
 begin
@@ -516,17 +511,17 @@ begin
   inherited Destroy;
 end;
 
-procedure TSpriteEngine.SetWorldX(Value: Single);
+procedure TRaySpriteEngine.SetWorldX(Value: Single);
 begin
   FWorld.X := Value;
 end;
 
-procedure TSpriteEngine.SetWorldY(Value: Single);
+procedure TRaySpriteEngine.SetWorldY(Value: Single);
 begin
   FWorld.Y := Value;
 end;
 
-procedure TSpriteEngine.Draw();
+procedure TRaySpriteEngine.Draw();
 var  i: Integer;
 begin
  for i := 0 to List.Count - 1 do
@@ -536,7 +531,7 @@ begin
    end;
 end;
 
-procedure TSpriteEngine.ClearDeadSprites;
+procedure TRaySpriteEngine.ClearDeadSprites;
 var i: Integer;
 begin
   for i := 0 to DeadList.Count - 1 do
@@ -552,7 +547,7 @@ begin
   DeadList.Clear;
 end;
 
-procedure TSpriteEngine.Move(MoveCount: Double);
+procedure TRaySpriteEngine.Move(MoveCount: Double);
 var i: Integer;
 begin
   for i := 0 to List.Count - 1 do
@@ -565,7 +560,7 @@ begin
 end;
 
 
-procedure TSpriteEngine.SetZOrder();
+procedure TRaySpriteEngine.SetZOrder();
 var i: Integer; Done: Boolean;
 begin
   Done := False;
@@ -586,20 +581,19 @@ begin
   until Done;
 end;
 
-constructor TSpriteEngine.Create;
+constructor TRaySpriteEngine.Create;
 begin
   List := TList.Create;
   DeadList := TList.Create;
 end;
 
-destructor TSpriteEngine.Destroy;
+destructor TRaySpriteEngine.Destroy;
 var i: Integer;
 begin
   for i := 0 to List.Count - 1 do  TRaySprite(List.Items[i]).Destroy;
   List.Destroy;
   DeadList.Destroy;
   inherited Destroy;
-
 end;
 
 end.
