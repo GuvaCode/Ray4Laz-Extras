@@ -61,6 +61,8 @@ type
     FVector: TVector2;
     FZ: Single;
     FScale: Single;
+    procedure SetX(AValue: Single);
+    procedure SetY(AValue: Single);
   protected
     FEngine: TSpriteEngine;
     FTextureName: string;
@@ -89,8 +91,8 @@ type
     destructor Destroy; override;
     property TextureIndex: Integer read FTextureIndex write SetTextureIndex;
     property TextureName: string read FTextureName write SetTextureName;
-    property X: Single read FVector.X write FVector.X;
-    property Y: Single read FVector.Y write FVector.Y;
+    property X: Single read FVector.X write SetX;
+    property Y: Single read FVector.Y write SetY;
     property Z: Single read FZ write SetOrder;
     property Scale: Single read FScale write SetScale;
     property Collisioned: Boolean read FCollisioned write FCollisioned;
@@ -203,7 +205,8 @@ begin
            FTexture.Pattern[FTextureIndex].Width* scale, FTexture.Pattern[FTextureIndex].Height* scale);
          //  Vector2Set(@Orig,FTexture.Pattern[FTextureIndex].Width/2 * Scale,
          //  FTexture.Pattern[FTextureIndex].Height/2 *Scale);
-           Vector2Set(@Orig,X * Scale, Y * Scale);
+          // Vector2Set(@Orig,X * Scale, Y * Scale);
+           Vector2Set(@Orig,0 * Scale, 0 * Scale);
            AlphaColor:=White; AlphaColor.a:=alpha;
            DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest,Orig,Angle,AlphaColor);
         end;
@@ -287,6 +290,16 @@ begin
   inherited Destroy;
 end;
 
+procedure TRaySprite.SetX(AValue: Single);
+begin
+  FVector.x:=AValue;
+end;
+
+procedure TRaySprite.SetY(AValue: Single);
+begin
+  FVector.y:=AValue;
+end;
+
 { TRaySprite }
 procedure TRaySprite.SetTextureName(Value: string);
 var i: Integer;
@@ -338,18 +351,33 @@ begin
           if FShowCollide then
             case FCollideMethod of
              cmRectangle: DrawRectangleRec(Self.CollideRect,RED);
-             cmCircle: DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
+             cmCircle:
+               begin
+               DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
+               //DrawCircle(rOUND(Self.X),Round(Self.Y),Self.Pattern.bottom,RED);
+               end;
              cmPolygon:
                     for i:=0 to Length(FCollidePolygon) -1 do
                     DrawPixelV(FCollidePolygon[i],RED);
                     //DrawPixel(FCollidePolygon[i].x,FCollidePolygon[i].y,RED);
             end;
-           RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-           RectangleSet(@Dest,X,Y ,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
-           Vector2Set(@WH,X,Y);
-           AlphaColor:=White;  AlphaColor.a:=alpha;
+
+
+          RectangleSet(@Source,0,0,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+
+          RectangleSet(@Dest,Self.X,Self.Y,FTexture.Pattern[FTextureIndex].Width, FTexture.Pattern[FTextureIndex].Height);
+
+
+             WH:=Vector2Create(0 , 0);
+
+             AlphaColor:=White;  AlphaColor.a:=alpha;
+
            DrawTextureTiled(FTexture.Texture[FTextureIndex], Source, Dest, WH, Angle, Scale, AlphaColor);
-           end;
+
+       //    DrawTexturePro(FTexture.Texture[FTextureIndex],Source,Dest,WH,Angle,AlphaColor);
+
+
+        end;
         end;
      end;
   end;
