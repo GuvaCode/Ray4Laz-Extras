@@ -21,6 +21,7 @@ type
   public
     List: TList;
     DeadList: TList;
+  //  Camera:TCamera2D;
     procedure Draw();
     procedure ClearDeadSprites;
     procedure Move(MoveCount:Double);
@@ -29,6 +30,7 @@ type
     destructor Destroy; override;
     property WorldX: Single read FWorld.X write SetWorldX;
     property WorldY: Single read FWorld.Y write SetWorldY;
+
   end;
 
   TPattern = record
@@ -154,68 +156,44 @@ end;
 
 procedure TRayAnimatedSprite.Draw();
 var
-     frameWidth: single;// = explosion.width/NUM_FRAMES_PER_LINE;    // Sprite one frame rectangle width
-     frameHeight: single;// = explosion.height/NUM_LINES;           //Высота прямоугольника одного кадра спрайта // Sprite one frame rectangle height
      FramesPerLine: integer;
      NumLines: integer;
-     IncLines:integer;
      Position:TVector2;
      frameRec:TRectangle;
-     stepYY,StepXX:integer;
-      XX,YY:Integer;
-
+     Dest: TRectangle;
+     AlphaColor:TColor;
 begin
-       FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;//Ширина прямоугольника спрайта в один кадр
-       NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;//Высота прямоугольника одного кадра спрайта
-
-       frameWidth:=Ftexture.Texture[FTextureIndex].width/ FramesPerLine;
-       frameHeight:=Ftexture.Texture[FTextureIndex].height/ NumLines;
-
-       frameRec.x:=0;
-       frameRec.y:=0;
-       frameRec.height:=frameHeight;
-       frameRec.width:=frameWidth;
-
+     FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;//Ширина прямоугольника спрайта в один кадр
+     NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;//Высота прямоугольника одного кадра спрайта
 
     if (TextureIndex  <> -1) and (Assigned(FEngine)) then
     begin
      if Visible then
       begin
-      //   frameRec.x:=x+FTexture.Pattern[FTextureIndex].Width;
-       //(1/TextureWidth) * (SpriteX+SpriteWidth)
-      // frameRec.x:=(1/Ftexture.Texture[FTextureIndex].width) *X;// (frameRec.x * FTexture.Pattern[FTextureIndex].Width);
-       //(frameWidth / Ftexture.Texture[FTextureIndex].width) /  NumLines ;
-      // frameRec.y:=(1/Ftexture.Texture[FTextureIndex].height) *Y ;
+         Vector2Set(@Position, 0 ,0 );
 
-        position.x:=X;
-        position.y:=y;
+         case FlipState of
+            fsNormal :
+              RectangleSet(@frameRec,X,Y,FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
+            fsX:
+              RectangleSet(@frameRec,X,Y,-FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
+            fsY:
+              RectangleSet(@frameRec,X,Y,FTexture.Pattern[FTextureIndex].Width,-FTexture.Pattern[FTextureIndex].Height);
+            fsXY:
+              RectangleSet(@frameRec,X,Y,-FTexture.Pattern[FTextureIndex].Width,-FTexture.Pattern[FTextureIndex].Height);
+           end;
 
-
-         //frameRec.x := Round(currentFrame)*Ftexture.Texture[FTextureIndex].width/FramesPerLine;
-
-       // if (AnimPos >= AnimStart) or (AnimPos <= AnimCount) then
-      //   begin
          frameRec.x := Trunc(AnimPos)*Ftexture.Texture[FTextureIndex].width/FramesPerLine;
-
          frameRec.y := FTexture.Pattern[FTextureIndex].Height * Trunc( AnimPos / NumLines);
 
+         RectangleSet(@Dest,X,Y,FTexture.Pattern[FTextureIndex].Width*Scale, FTexture.Pattern[FTextureIndex].Height*Scale);
 
-        DrawTextureRec(FTexture.Texture[FTextureIndex], frameRec, position, WHITE);
-        // end;
+         AlphaColor:=White; AlphaColor.a:=Alpha;
 
-         //DrawRectangleRec(frameRec,Blue);
-    //  end;
-
-
-
-       //
-
-
-
+         DrawTexturePro(FTexture.Texture[FTextureIndex], frameRec, Dest , position ,Angle ,AlphaColor);
       end;
 
-end;
-
+    end;
 
 end;
 
@@ -295,47 +273,7 @@ begin
 end;
  }
 procedure TRayAnimatedSprite.Move(MoveCount: Double);
-var frameWidth: single;// = explosion.width/NUM_FRAMES_PER_LINE;    // Sprite one frame rectangle width
-    frameHeight: single;// = explosion.height/NUM_LINES;           //Высота прямоугольника одного кадра спрайта // Sprite one frame rectangle height
-    FramesPerLine: integer;
-    NumLines: integer;
 begin
-    //  FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;//Ширина прямоугольника спрайта в один кадр
-    //  NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;//Высота прямоугольника одного кадра спрайта
-
-  //    frameWidth:=Ftexture.Texture[FTextureIndex].width / FPatternIndex;
-  //    frameHeight:=Ftexture.Texture[FTextureIndex].height / FPatternIndex;
-
-//         AnimLooped := Looped;
-//  AnimStart := Start;
-//  AnimCount := Count;
-//  AnimSpeed := Speed;
-
-{   if AnimSpeed > 0 then
-    begin
-    Inc(framesCounter);
-
-
-     if (framesCounter > 20) then
-      begin
-      inc(currentFrame);
-       if (currentFrame >= FramesPerLine) then
-       begin
-       currentFrame := AnimStart;
-       inc(currentLine);
-       if (currentLine >= NumLines) then
-       begin
-       currentLine := 0;
-                       // active = false; loopet;
-       end;
-
-    framesCounter := 0;
-    end;
-   end;
-   end;  }
-
-
-
    if AnimSpeed > 0 then
   begin
     AnimPos := AnimPos + AnimSpeed * MoveCount;
@@ -386,7 +324,7 @@ begin
       FPatternIndex := Trunc(AnimPos);
     end;
   end; // if AnimSpeed > 0   }
-  //writeln( FPatternIndex  );
+
 end;
 
 procedure TRayAnimatedSprite.DoAnim(Looped: Boolean; Start: Integer;
