@@ -16,12 +16,13 @@ type
   TRaySpriteEngine = class
   private
     FWorld: TVector2;
+    FDeadList: TList;
+    FList: TList;
     procedure SetWorldX(Value: Single);
     procedure SetWorldY(Value: Single);
   public
-    List: TList;
-    DeadList: TList;
-  //  Camera:TCamera2D;
+
+
     procedure Draw();
     procedure ClearDeadSprites;
     procedure Move(MoveCount:Double);
@@ -30,7 +31,6 @@ type
     destructor Destroy; override;
     property WorldX: Single read FWorld.X write SetWorldX;
     property WorldY: Single read FWorld.Y write SetWorldY;
-
   end;
 
   TPattern = record
@@ -156,11 +156,9 @@ end;
 
 procedure TRayAnimatedSprite.Draw();
 var
-     FramesPerLine: integer;
-     NumLines: integer;
+     FramesPerLine, NumLines,i: integer;
      Position:TVector2;
-     frameRec:TRectangle;
-     Dest: TRectangle;
+     frameRec,Dest:TRectangle;
      AlphaColor:TColor;
 begin
      FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;//Ширина прямоугольника спрайта в один кадр
@@ -170,7 +168,16 @@ begin
     begin
      if Visible then
       begin
-         Vector2Set(@Position, 0 ,0 );
+       if FShowCollide then
+           //DrawCollide
+           case FCollideMethod of
+             cmRectangle:
+               DrawRectangleRec(Self.CollideRect,RED);
+             cmCircle:
+               DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
+             cmPolygon:
+               for i:=0 to Length(FCollidePolygon) -1 do DrawPixelV(FCollidePolygon[i],RED);
+            end;
 
          case FlipState of
             fsNormal :
@@ -188,90 +195,13 @@ begin
 
          RectangleSet(@Dest,X,Y,FTexture.Pattern[FTextureIndex].Width*Scale, FTexture.Pattern[FTextureIndex].Height*Scale);
 
-         AlphaColor:=White; AlphaColor.a:=Alpha;
+         AlphaColor:=White; AlphaColor.a:=Alpha; Vector2Set(@Position,0,0);
 
          DrawTexturePro(FTexture.Texture[FTextureIndex], frameRec, Dest , position ,Angle ,AlphaColor);
       end;
-
     end;
-
 end;
 
-{procedure TRayAnimatedSprite.Draw();
-var Source: TRectangle;
-    Dest: TRectangle;
-    Orig:TVector2;
-    AlphaColor:TColor;
-    ox,oy:single;
-    FramesPerLine: integer;
-    NumLines: integer;
-    MaxNum:integer;
-    i: integer;
-begin
-   if TextureIndex  <> -1 then
-   begin
-     if Assigned(FEngine) then
-     begin
-        if Visible then
-        begin
-
-        if FShowCollide then
-            case FCollideMethod of
-             cmRectangle: DrawRectangleRec(Self.CollideRect,RED);
-             cmCircle: DrawCircleV(Self.CollidePos ,Self.CollideRadius,RED);
-             cmPolygon:
-                    for i:=0 to Length(FCollidePolygon) -1 do
-                    DrawPixelV(FCollidePolygon[i],RED);
-                    //DrawPixel(FCollidePolygon[i].x,FCollidePolygon[i].y,RED);
-            end;
-
-         FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;
-         NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;
-
-        // MaxNum:=0;
-
-         ox := (Round(AnimPos) mod FramesPerLine) * FTexture.Pattern[FTextureIndex].Width;
-
-      //   oy := 3  * FTexture.Pattern[FTextureIndex].Height;
-
-      //(Round(AnimPos) div NumLines) * FTexture.Pattern[FTextureIndex].Height;
-
-        if (Round(AnimPos) >= FramesPerLine) and (MaxNum <= NumLines) then
-           begin
-            {$WARNINGS OFF}
-
-           //  Inc(MaxNum);
-            // if MaxNum>=4 then MaxNum:=0;
-             oy:=oy * FTexture.Pattern[FTextureIndex].Height;
-            {$WARNINGS ON}
-           end;
-
-           case FlipState of
-            fsNormal :
-              RectangleSet(@Source,OX,OY,FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
-            fsX:
-              RectangleSet(@Source,OX,OY,-FTexture.Pattern[FTextureIndex].Width,FTexture.Pattern[FTextureIndex].Height);
-            fsY:
-              RectangleSet(@Source,OX,OY,FTexture.Pattern[FTextureIndex].Width,-FTexture.Pattern[FTextureIndex].Height);
-            fsXY:
-              RectangleSet(@Source,OX,OY,-FTexture.Pattern[FTextureIndex].Width,-FTexture.Pattern[FTextureIndex].Height);
-           end;
-
-           RectangleSet(@Dest,
-          { FEngine.FCamera.target.x +} x ,
-          { FEngine.FCamera.target.y +} y ,
-           FTexture.Pattern[FTextureIndex].Width* scale, FTexture.Pattern[FTextureIndex].Height* scale);
-          // Vector2Set(@Orig,FTexture.Pattern[FTextureIndex].Width/2 * Scale,
-           //FTexture.Pattern[FTextureIndex].Height/2 *Scale);
-          // Vector2Set(@Orig,X * Scale, Y * Scale);
-           Vector2Set(@Orig,0 * Scale, 0 * Scale);
-           AlphaColor:=White; AlphaColor.a:=alpha;
-           DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest,Orig,Angle,AlphaColor);
-        end;
-     end;
-   end;
-end;
- }
 procedure TRayAnimatedSprite.Move(MoveCount: Double);
 begin
    if AnimSpeed > 0 then
@@ -281,9 +211,7 @@ begin
 
     if (Round(AnimPos) > AnimStart + AnimCount) then
     begin
-
       if (Round(AnimPos)) = AnimStart + AnimCount then
-
         if AnimLooped then
         begin
           AnimPos := AnimStart;
@@ -300,13 +228,10 @@ begin
     begin
       if Round(AnimPos) >= AnimCount + 1 then
       begin
-
         FDoAnimated := False;
         AnimLooped := False;
-
         AnimSpeed := 0;
         AnimCount := 0;
-
         AnimPos := AnimStart;
         FPatternIndex := Round(AnimPos);
       end;
@@ -323,8 +248,7 @@ begin
       AnimPos := AnimStart;
       FPatternIndex := Trunc(AnimPos);
     end;
-  end; // if AnimSpeed > 0   }
-
+  end;
 end;
 
 procedure TRayAnimatedSprite.DoAnim(Looped: Boolean; Start: Integer;
@@ -335,7 +259,6 @@ begin
   AnimStart := Start;
   AnimCount := Count;
   AnimSpeed := Speed;
-
 end;
 
 constructor TRayAnimatedSprite.Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture);
@@ -349,8 +272,6 @@ destructor TRayAnimatedSprite.Destroy;
 begin
   inherited Destroy;
 end;
-
-
 
 { TRaySprite }
 procedure TRaySprite.SetTextureName(Value: string);
@@ -445,7 +366,7 @@ begin
    if IsSpriteDead = False then
   begin
     IsSpriteDead := True;
-    FEngine.DeadList.Add(Self);
+    FEngine.FDeadList.Add(Self);
     Self.Visible := False;
   end;
 end;
@@ -488,8 +409,8 @@ procedure TRaySprite.Collision;
 begin
      if (FEngine<>nil) and (not IsSpriteDead) and (Collisioned) then
      begin
-          for i:=0 to FEngine.List.Count-1 do
-              Self.Collision(TRaySprite(FEngine.List.Items[i]));
+          for i:=0 to FEngine.FList.Count-1 do
+              Self.Collision(TRaySprite(FEngine.FList.Items[i]));
      end;
 
 end;
@@ -500,7 +421,7 @@ begin
   begin
   FAnimated := False;
   FEngine := Engine;
-  FEngine.List.Add(Self);
+  FEngine.FList.Add(Self);
   FTexture := Texture;
   Pattern.Left := 0;
   Pattern.Top := 0;
@@ -577,38 +498,38 @@ end;
 procedure TRaySpriteEngine.Draw();
 var  i: Integer;
 begin
- for i := 0 to List.Count - 1 do
+ for i := 0 to FList.Count - 1 do
    begin
-    if TRaySprite(List.Items[i]).FAnimated = False then TRaySprite(List.Items[i]).Draw
-    else TRayAnimatedSprite(List.Items[i]).Draw;
+    if TRaySprite(FList.Items[i]).FAnimated = False then TRaySprite(FList.Items[i]).Draw
+    else TRayAnimatedSprite(FList.Items[i]).Draw;
    end;
 end;
 
 procedure TRaySpriteEngine.ClearDeadSprites;
 var i: Integer;
 begin
-  for i := 0 to DeadList.Count - 1 do
+  for i := 0 to FDeadList.Count - 1 do
   begin
-    if DeadList.Count >= 1 then
+    if FDeadList.Count >= 1 then
     begin
-      if TRaySprite(DeadList.Items[i]).IsSpriteDead = True then
+      if TRaySprite(FDeadList.Items[i]).IsSpriteDead = True then
       begin
-        TRaySprite(DeadList.Items[i]).FEngine.List.Remove(DeadList.Items[i]);
+        TRaySprite(FDeadList.Items[i]).FEngine.FList.Remove(FDeadList.Items[i]);
       end;
     end;
   end;
-  DeadList.Clear;
+  FDeadList.Clear;
 end;
 
 procedure TRaySpriteEngine.Move(MoveCount: Double);
 var i: Integer;
 begin
-  for i := 0 to List.Count - 1 do
+  for i := 0 to FList.Count - 1 do
   begin
-    if TRaySprite(List.Items[i]).FAnimated = False then
-       TRaySprite(List.Items[i]).Move(MoveCount)
+    if TRaySprite(FList.Items[i]).FAnimated = False then
+       TRaySprite(FList.Items[i]).Move(MoveCount)
     else
-      TRayAnimatedSprite(List.Items[i]).Move(MoveCount);
+      TRayAnimatedSprite(FList.Items[i]).Move(MoveCount);
   end;
 end;
 
@@ -618,16 +539,16 @@ var i: Integer; Done: Boolean;
 begin
   Done := False;
   repeat
-    for i := List.Count - 1 downto 0 do
+    for i := FList.Count - 1 downto 0 do
     begin
      if i = 0 then
       begin
         Done := True;
         break;
       end;
-      if TRaySprite(List.Items[i]).Z < TRaySprite(List.Items[i - 1]).Z then
+      if TRaySprite(FList.Items[i]).Z < TRaySprite(FList.Items[i - 1]).Z then
       begin
-        List.Move(i, i - 1);
+        FList.Move(i, i - 1);
         break;
       end;
     end;
@@ -636,16 +557,16 @@ end;
 
 constructor TRaySpriteEngine.Create;
 begin
-  List := TList.Create;
-  DeadList := TList.Create;
+  FList := TList.Create;
+  FDeadList := TList.Create;
 end;
 
 destructor TRaySpriteEngine.Destroy;
 var i: Integer;
 begin
-  for i := 0 to List.Count - 1 do  TRaySprite(List.Items[i]).Destroy;
-  List.Destroy;
-  DeadList.Destroy;
+  for i := 0 to FList.Count - 1 do  TRaySprite(FList.Items[i]).Destroy;
+  FList.Destroy;
+  FDeadList.Destroy;
   inherited Destroy;
 end;
 
