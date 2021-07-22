@@ -118,6 +118,10 @@ type
     AnimSpeed: Single;
     AnimPos: Single;
 
+    currentFrame:integer;
+    currentLine: integer;
+    framesCounter: integer;
+
     procedure Draw();
     procedure Move(MoveCount: Double); override;
 
@@ -147,7 +151,75 @@ begin
   Pattern.Right := Value;
 end;
 
+
 procedure TRayAnimatedSprite.Draw();
+var
+     frameWidth: single;// = explosion.width/NUM_FRAMES_PER_LINE;    // Sprite one frame rectangle width
+     frameHeight: single;// = explosion.height/NUM_LINES;           //Высота прямоугольника одного кадра спрайта // Sprite one frame rectangle height
+     FramesPerLine: integer;
+     NumLines: integer;
+     IncLines:integer;
+     Position:TVector2;
+     frameRec:TRectangle;
+     stepYY,StepXX:integer;
+      XX,YY:Integer;
+
+begin
+       FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;//Ширина прямоугольника спрайта в один кадр
+       NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;//Высота прямоугольника одного кадра спрайта
+
+       frameWidth:=Ftexture.Texture[FTextureIndex].width/ FramesPerLine;
+       frameHeight:=Ftexture.Texture[FTextureIndex].height/ NumLines;
+
+       frameRec.x:=0;
+       frameRec.y:=0;
+       frameRec.height:=frameHeight;
+       frameRec.width:=frameWidth;
+
+
+    if (TextureIndex  <> -1) and (Assigned(FEngine)) then
+    begin
+     if Visible then
+      begin
+      //   frameRec.x:=x+FTexture.Pattern[FTextureIndex].Width;
+       //(1/TextureWidth) * (SpriteX+SpriteWidth)
+      // frameRec.x:=(1/Ftexture.Texture[FTextureIndex].width) *X;// (frameRec.x * FTexture.Pattern[FTextureIndex].Width);
+       //(frameWidth / Ftexture.Texture[FTextureIndex].width) /  NumLines ;
+      // frameRec.y:=(1/Ftexture.Texture[FTextureIndex].height) *Y ;
+
+        position.x:=X;
+        position.y:=y;
+
+
+         //frameRec.x := Round(currentFrame)*Ftexture.Texture[FTextureIndex].width/FramesPerLine;
+
+       // if (AnimPos >= AnimStart) or (AnimPos <= AnimCount) then
+      //   begin
+         frameRec.x := Trunc(AnimPos)*Ftexture.Texture[FTextureIndex].width/FramesPerLine;
+
+         frameRec.y := FTexture.Pattern[FTextureIndex].Height * Trunc( AnimPos / NumLines);
+
+
+        DrawTextureRec(FTexture.Texture[FTextureIndex], frameRec, position, WHITE);
+        // end;
+
+         //DrawRectangleRec(frameRec,Blue);
+    //  end;
+
+
+
+       //
+
+
+
+      end;
+
+end;
+
+
+end;
+
+{procedure TRayAnimatedSprite.Draw();
 var Source: TRectangle;
     Dest: TRectangle;
     Orig:TVector2;
@@ -177,13 +249,14 @@ begin
 
          FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;
          NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;
-         MaxNum:=0;
+
+        // MaxNum:=0;
 
          ox := (Round(AnimPos) mod FramesPerLine) * FTexture.Pattern[FTextureIndex].Width;
 
-         oy := 3  * FTexture.Pattern[FTextureIndex].Height;
+      //   oy := 3  * FTexture.Pattern[FTextureIndex].Height;
 
-         //(Round(AnimPos) div NumLines) * FTexture.Pattern[FTextureIndex].Height;
+      //(Round(AnimPos) div NumLines) * FTexture.Pattern[FTextureIndex].Height;
 
         if (Round(AnimPos) >= FramesPerLine) and (MaxNum <= NumLines) then
            begin
@@ -220,9 +293,49 @@ begin
      end;
    end;
 end;
-
+ }
 procedure TRayAnimatedSprite.Move(MoveCount: Double);
+var frameWidth: single;// = explosion.width/NUM_FRAMES_PER_LINE;    // Sprite one frame rectangle width
+    frameHeight: single;// = explosion.height/NUM_LINES;           //Высота прямоугольника одного кадра спрайта // Sprite one frame rectangle height
+    FramesPerLine: integer;
+    NumLines: integer;
 begin
+    //  FramesPerLine:=Ftexture.Texture[FTextureIndex].width div FTexture.Pattern[FTextureIndex].Width;//Ширина прямоугольника спрайта в один кадр
+    //  NumLines:=Ftexture.Texture[FTextureIndex].height div FTexture.Pattern[FTextureIndex].Height;//Высота прямоугольника одного кадра спрайта
+
+  //    frameWidth:=Ftexture.Texture[FTextureIndex].width / FPatternIndex;
+  //    frameHeight:=Ftexture.Texture[FTextureIndex].height / FPatternIndex;
+
+//         AnimLooped := Looped;
+//  AnimStart := Start;
+//  AnimCount := Count;
+//  AnimSpeed := Speed;
+
+{   if AnimSpeed > 0 then
+    begin
+    Inc(framesCounter);
+
+
+     if (framesCounter > 20) then
+      begin
+      inc(currentFrame);
+       if (currentFrame >= FramesPerLine) then
+       begin
+       currentFrame := AnimStart;
+       inc(currentLine);
+       if (currentLine >= NumLines) then
+       begin
+       currentLine := 0;
+                       // active = false; loopet;
+       end;
+
+    framesCounter := 0;
+    end;
+   end;
+   end;  }
+
+
+
    if AnimSpeed > 0 then
   begin
     AnimPos := AnimPos + AnimSpeed * MoveCount;
@@ -272,7 +385,8 @@ begin
       AnimPos := AnimStart;
       FPatternIndex := Trunc(AnimPos);
     end;
-  end; // if AnimSpeed > 0
+  end; // if AnimSpeed > 0   }
+  //writeln( FPatternIndex  );
 end;
 
 procedure TRayAnimatedSprite.DoAnim(Looped: Boolean; Start: Integer;
@@ -283,6 +397,7 @@ begin
   AnimStart := Start;
   AnimCount := Count;
   AnimSpeed := Speed;
+
 end;
 
 constructor TRayAnimatedSprite.Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture);
