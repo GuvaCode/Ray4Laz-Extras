@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <Name Value="ray4laz_extra"/>
     <Type Value="RunAndDesignTime"/>
     <CompilerOptions>
@@ -22,14 +22,15 @@
         <UnitName Value="ray_application"/>
       </Item2>
       <Item3>
-        <Filename Value="../source/ray_sprites.pas"/>
-        <UnitName Value="ray_sprites"/>
+        <Filename Value="../source/ray_sprite.pas"/>
+        <UnitName Value="ray_sprite"/>
       </Item3>
       <Item4>
         <Filename Value="../source/ray_model.pas"/>
         <UnitName Value="ray_model"/>
       </Item4>
     </Files>
+    <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="3">
       <Item1>
         <PackageName Value="IDEIntf"/>
