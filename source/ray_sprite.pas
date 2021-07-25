@@ -384,18 +384,6 @@ begin
   begin
     if Visible then
     begin
-      if FShowCollide then
-        //DrawCollide
-        case FCollideMethod of
-          cmRectangle:
-            DrawRectangleLinesEx(Self.CollideRect,1,Blue);
-          cmCircle:
-            DrawCircleV(Self.CollidePos, Self.CollideRadius, RED);
-          cmPolygon:
-            for i := 0 to Length(FCollidePolygon) - 1 do
-              DrawPixelV(FCollidePolygon[i], RED);
-        end;
-
       case FlipState of
         fsNormal:
           RectangleSet(@frameRec, X, Y, FTexture.Pattern[FTextureIndex].Width,
@@ -425,6 +413,19 @@ begin
 
       DrawTexturePro(FTexture.Texture[FTextureIndex], frameRec,
         Dest, position, Angle, AlphaColor);
+
+      if FShowCollide then
+        //DrawCollide
+        case FCollideMethod of
+          cmRectangle:
+            DrawRectangleLinesEx(Self.CollideRect,1,Blue);
+          cmCircle:
+            DrawCircleV(Self.CollidePos, Self.CollideRadius, RED);
+          cmPolygon:
+            for i := 0 to Length(FCollidePolygon) - 1 do
+              DrawPixelV(FCollidePolygon[i], RED);
+        end;
+
     end;
   end;
 end;
@@ -583,8 +584,7 @@ begin
          if FShowCollide then
 
           case FCollideMethod of
-            cmRectangle: DrawRectangleLinesEx(Self.CollideRect,1,Blue);
-              //DrawRectangleRec(Self.CollideRect, RED);
+            cmRectangle: DrawRectangleLinesEx(Self.CollideRect,1,RED);
             cmCircle: DrawCircleV(Self.CollidePos, Self.CollideRadius, RED);
             cmPolygon:
               for i := 0 to Length(FCollidePolygon) - 1 do
