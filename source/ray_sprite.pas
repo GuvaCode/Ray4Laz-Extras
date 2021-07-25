@@ -204,7 +204,7 @@ end;
 
 constructor TJumperSprite.Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture);
 begin
-  inherited Create(Engine, Texture);
+  inherited; // Create(Engine, Texture);
   FVelocityX := 0;
   FVelocityY := 0;
   MaxSpeed := FMaxSpeed;
@@ -296,7 +296,7 @@ end;
 
 constructor TPlayerSprite.Create(Engine: TRaySpriteEngine; Texture: TRayGameTexture);
 begin
-  inherited Create(Engine, Texture);
+  inherited;// Create(Engine, Texture);
   FVelocityX := 0;
   FVelocityY := 0;
   Acceleration := 0;
@@ -388,7 +388,7 @@ begin
         //DrawCollide
         case FCollideMethod of
           cmRectangle:
-            DrawRectangleRec(Self.CollideRect, RED);
+            DrawRectangleLinesEx(Self.CollideRect,1,Blue);
           cmCircle:
             DrawCircleV(Self.CollidePos, Self.CollideRadius, RED);
           cmPolygon:
@@ -552,15 +552,7 @@ begin
     begin
       if Visible then
       begin
-        if FShowCollide then
 
-          case FCollideMethod of
-            cmRectangle: DrawRectangleRec(Self.CollideRect, RED);
-            cmCircle: DrawCircleV(Self.CollidePos, Self.CollideRadius, RED);
-            cmPolygon:
-              for i := 0 to Length(FCollidePolygon) - 1 do
-                DrawPixelV(FCollidePolygon[i], RED);
-          end;
 
         case FlipState of
           fsNormal:
@@ -587,6 +579,18 @@ begin
 
         DrawTexturePro(FTexture.Texture[FTextureIndex], Source, Dest,
           WH, Angle, AlphaColor);
+
+         if FShowCollide then
+
+          case FCollideMethod of
+            cmRectangle: DrawRectangleLinesEx(Self.CollideRect,1,Blue);
+              //DrawRectangleRec(Self.CollideRect, RED);
+            cmCircle: DrawCircleV(Self.CollidePos, Self.CollideRadius, RED);
+            cmPolygon:
+              for i := 0 to Length(FCollidePolygon) - 1 do
+                DrawPixelV(FCollidePolygon[i], RED);
+          end;
+
       end;
     end;
   end;
@@ -668,7 +672,7 @@ begin
     Alpha := 255;
     Scale := 1.0;
     Visible := True;
-    TraceLog(LOG_INFO, ModuleName + 'Sprite engine created successfully');
+    TraceLog(LOG_INFO, ModuleName + 'Sprite created successfully');
   end
   else
   begin

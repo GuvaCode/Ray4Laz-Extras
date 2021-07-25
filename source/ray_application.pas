@@ -49,7 +49,7 @@ end;
 { TRayApplication }
 constructor TRayApplication.Create;
 begin
-   InitWindow(1024, 768, 'raylib [core] - basic window');
+   InitWindow(800, 600, 'raylib [core] - basic window');
 
    SetWindowState(FLAG_VSYNC_HINT);
    FClearBgColor:= WHITE;
