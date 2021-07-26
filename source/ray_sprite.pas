@@ -399,10 +399,8 @@ begin
             -FTexture.Pattern[FTextureIndex].Height);
       end;
 
-      frameRec.x := Trunc(AnimPos) * Ftexture.Texture[FTextureIndex].Width /
-        FramesPerLine;
-      frameRec.y := FTexture.Pattern[FTextureIndex].Height * Trunc(
-        AnimPos / NumLines);
+      frameRec.x := Trunc(AnimPos) * Ftexture.Texture[FTextureIndex].Width /FramesPerLine;
+      frameRec.y := FTexture.Pattern[FTextureIndex].Height * Trunc(AnimPos / NumLines);
 
       RectangleSet(@Dest, X, Y, FTexture.Pattern[FTextureIndex].Width * Scale,
         FTexture.Pattern[FTextureIndex].Height * Scale);
