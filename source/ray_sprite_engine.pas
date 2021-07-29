@@ -277,6 +277,7 @@ type
     FPatternHeight: Integer;
     FPatternCount: Integer;
     procedure SetAnimStart(Value: Integer);
+    function SetPatternRec(ATexture: TTexture; PatternIndex, PatternWidth, PatternHeight: Integer): TRectangle;
   public
     constructor Create(const AParent: TSprite); override;
     procedure Assign(const Value: TSprite); override;
@@ -360,6 +361,34 @@ begin
   end;
 end;
 
+function TAnimatedSprite.SetPatternRec(ATexture: TTexture; PatternIndex,
+  PatternWidth, PatternHeight: Integer): TRectangle;
+var FTexWidth, FTexHeight, ColCount, RowCount, FFPatternIndex:integer;
+    Left,Right,Top,Bottom,FFWidth,FFHeight,XX1,YY1,XX2,YY2:integer;
+    Rects:TRectangle;
+begin
+   FTexWidth := ATexture.Width;
+   FTexHeight := ATexture.Height;
+   ColCount := FTexWidth div PatternWidth;
+   RowCount := FTexHeight div PatternHeight;
+   FFPatternIndex := PatternIndex;
+  if FFPatternIndex < 0 then
+    FFPatternIndex := 0;
+  if FFPatternIndex >= RowCount * ColCount then
+    FFPatternIndex := RowCount * ColCount - 1;
+   Left := (FFPatternIndex mod ColCount) * PatternWidth;
+   Right := Left + PatternWidth;
+   Top := (FFPatternIndex div ColCount) * PatternHeight;
+   Bottom := Top + PatternHeight;
+   FFWidth := Right - Left;
+   FFHeight := Bottom - Top;
+   XX1 := Left;
+   YY1 := Top;
+   XX2 := (Left + FFWidth);
+   YY2 := (Top + FFHeight);
+   Result:=RectangleCreate(Round(XX1), Round(YY1), Round(XX2), Round(YY2));
+end;
+
 function Mod2f(I: Double; i2: Integer): Double;
 begin
   if i2 = 0 then
@@ -401,51 +430,28 @@ end;
 
 procedure TAnimatedSprite.DoDraw;
 var frameRec, Dest: TRectangle;
-    AlphaColor: TColor;
-    FramesPerLine, NumLines:integer;
+
 begin
     if not FImageLib.ContainsKey(FImagename) then Exit;
-
-    case MirrorMode of
-    mirrorNormal:RectangleSet(@frameRec, 0, 0, Self.PatternWidth, Self.PatternHeight);
-    mirrorX:     RectangleSet(@frameRec, 0, 0,-Self.PatternWidth, Self.PatternHeight);
-    mirrorY:     RectangleSet(@frameRec, 0, 0, Self.PatternWidth,-Self.PatternHeight);
-    mirrorXY:    RectangleSet(@frameRec, 0, 0,-Self.PatternWidth,-Self.PatternHeight);
-   end;
-
-    FramesPerLine := FImageLib[FImageName].Width div FPatternWidth; //Ширина прямоугольника спрайта в один кадр
-    NumLines := FImageLib[FImageName].Height div FPatternHeight;  //Высота прямоугольника одного кадра спрайта
-
-  //  frameRec.x := (  64 * FPatternIndex) / 3;
-
-    //frameRec.y := FPatternHeight *(AnimPos / NumLines);
-
-    //frameRec.y := FTexture.Pattern[FTextureIndex].Height * Trunc(AnimPos / NumLines);
 
     RectangleSet(@Dest,
     FX + FWorldX + Offset.X - FEngine.FWorldX,
     FY + FWorldY + Offset.Y - FEngine.FWorldY,
     FPatternWidth * FScaleX, FPatternHeight * FScaleY);
 
-    AlphaColor := White;
-      AlphaColor.a := Alpha;
-      //(@Position, 0, 0);
+    framerec:= SetPatternRec(FImageLib[FImageName], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
+    framerec.width:=FPatternWidth;
+    framerec.height:=FPatternHeight;
 
-      DrawTexturePro( FImageLib[FImageName], frameRec, Dest, Vector2Create(0,0), Angle, AlphaColor);
+    case MirrorMode of
+    mirrorNormal:RectangleSet(@frameRec, framerec.x, framerec.y, Self.PatternWidth, Self.PatternHeight);
+    mirrorX:     RectangleSet(@frameRec, framerec.x, framerec.y,-Self.PatternWidth, Self.PatternHeight);
+    mirrorY:     RectangleSet(@frameRec, framerec.x, framerec.y, Self.PatternWidth,-Self.PatternHeight);
+    mirrorXY:    RectangleSet(@frameRec, framerec.x, framerec.y, -Self.PatternWidth,-Self.PatternHeight);
+   end;
 
-      {  case TruncMove of
-        True:
-    {      FEngine.FCanvas.DrawPattern(FImageLib[FImageName], Round(FX + FWorldX + Offset.X - FEngine.FWorldX),
-            Round(FY + FWorldY + Offset.Y - FEngine.FWorldY), ScaleX, ScaleY, PatternIndex,
-            PatternWidth, PatternHeight, FMirrorX, ARGB(FAlpha, FRed, FGreen, FBlue),
-            FBlendingEffect);  }
-
-        False:
-        {  FEngine.FCanvas.DrawPattern(FImageLib[FImageName], FX + FWorldX + Offset.X - FEngine.FWorldX,
-            FY + FWorldY + Offset.Y - FEngine.FWorldY, ScaleX, ScaleY, PatternIndex, PatternWidth,
-            PatternHeight, FMirrorX, ARGB(FAlpha, FRed, FGreen, FBlue), FBlendingEffect); }
-      end;    }
-
+    DrawTexturePro( FImageLib[FImageName], frameRec, Dest, Vector2Create(0,0), Angle,
+    ColorCreate(Self.Red,Self.Green,Self.Blue,Self.Alpha));
 end;
 
 procedure TAnimatedSprite.DoMove(const MoveCount: Single);
