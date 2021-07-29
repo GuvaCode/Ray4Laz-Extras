@@ -359,6 +359,36 @@ type
     property LifeTime: Real read FLifeTime write FLifeTime;
   end;
 
+  { TPlayerSprite }
+  TPlayerSprite = class(TAnimatedSprite)
+  private
+    FSpeed: Single;
+    FAcc: Single;
+    FDcc: Single;
+    FMinSpeed: Single;
+    FMaxSpeed: Single;
+    FVelocityX: Single;
+    FVelocityY: Single;
+    FDirection: Integer;
+    procedure SetSpeed(Value: Single);
+    procedure SetDirection(Value: Integer);
+  public
+    constructor Create(const AParent: TSprite); override;
+    procedure UpdatePos(const MoveCount: Single);
+    procedure FlipXDirection;
+    procedure FlipYDirection;
+    procedure Accelerate; virtual;
+    procedure Deccelerate; virtual;
+    property Speed: Single read FSpeed write SetSpeed;
+    property MinSpeed: Single read FMinSpeed write FMinSpeed;
+    property MaxSpeed: Single read FMaxSpeed write FMaxSpeed;
+    property VelocityX: Single read FVelocityX write FVelocityX;
+    property VelocityY: Single read FVelocityY write FVelocityY;
+    property Acceleration: Single read FAcc write FAcc;
+    property Decceleration: Single read FDcc write FDcc;
+    property Direction: Integer read FDirection write SetDirection;
+  end;
+
   { TSpriteEngine }
   TSpriteEngine = class(TSprite)
    private
@@ -406,6 +436,88 @@ type
 
 
 implementation
+
+{$REGION TPlayerSprite }
+
+procedure TPlayerSprite.SetSpeed(Value: Single);
+begin
+   if FSpeed > FMaxSpeed then
+    FSpeed := FMaxSpeed
+  else if FSpeed < FMinSpeed then
+    FSpeed := FMinSpeed;
+  FSpeed := Value;
+  VelocityX := Cos256(FDirection + 192) * Speed;
+  VelocityY := Sin256(FDirection + 192) * Speed;
+end;
+
+procedure TPlayerSprite.SetDirection(Value: Integer);
+begin
+  FDirection := Value;
+  VelocityX := Cos256(FDirection + 192) * Speed;
+  VelocityY := Sin256(FDirection + 192) * Speed;
+end;
+
+constructor TPlayerSprite.Create(const AParent: TSprite);
+begin
+  inherited Create(AParent);
+  FVelocityX := 0;
+  FVelocityY := 0;
+  Acceleration := 0;
+  Decceleration := 0;
+  Speed := 0;
+  MinSpeed := 0;
+  MaxSpeed := 0;
+  FDirection := 0;
+end;
+
+procedure TPlayerSprite.UpdatePos(const MoveCount: Single);
+begin
+  inherited;
+  X := X + VelocityX * MoveCount;
+  Y := Y + VelocityY * MoveCount;
+end;
+
+procedure TPlayerSprite.FlipXDirection;
+begin
+  if FDirection >= 64 then
+    FDirection := 192 + (64 - FDirection)
+  else if FDirection > 0 then
+    FDirection := 256 - FDirection;
+end;
+
+procedure TPlayerSprite.FlipYDirection;
+begin
+  if FDirection > 128 then
+    FDirection := 128 + (256 - FDirection)
+  else
+    FDirection := 128 - FDirection;
+end;
+
+procedure TPlayerSprite.Accelerate;
+begin
+  if FSpeed <> FMaxSpeed then
+  begin
+    FSpeed := FSpeed + FAcc;
+    if FSpeed > FMaxSpeed then
+      FSpeed := FMaxSpeed;
+    VelocityX := Cos256(FDirection + 192) * Speed;
+    VelocityY := Sin256(FDirection + 192) * Speed;
+  end;
+end;
+
+procedure TPlayerSprite.Deccelerate;
+begin
+    if FSpeed <> FMinSpeed then
+  begin
+    FSpeed := FSpeed - FDcc;
+    if FSpeed < FMinSpeed then
+      FSpeed := FMinSpeed;
+    VelocityX := Cos256(FDirection + 192) * Speed;
+    VelocityY := Sin256(FDirection + 192) * Speed;
+  end;
+end;
+
+{$ENDREGION}
 
 {$REGION TParticleSprite }
 
