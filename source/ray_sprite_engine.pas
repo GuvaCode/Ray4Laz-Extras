@@ -22,6 +22,8 @@ type
 
   TMirrorMode = (MirrorNormal , MirrorX , MirrorY , MirrorXY);
 
+  TTileMode = (tmHorizontal, tmVertical, tmFull);
+
   TFrameRec = record
     FrameName: string;
     Frames: array of Cardinal;
@@ -444,7 +446,6 @@ type
   end;
 
   { TJumperSpriteEx }
-
   TJumperSpriteEx = class(TPlayerSprite)
   private
     FJumpCount: Integer;
@@ -480,6 +481,36 @@ type
     property JumpHeight: Single read FJumpHeight write FJumpHeight;
     property MaxFallSpeed: Single read FMaxFallSpeed write FMaxFallSpeed;
     property DoJump: Boolean read FDoJump write FDoJump;
+  end;
+
+  { TPathSprite }
+  TPathSprite = class(TAnimatedSprite)
+  private
+    FLooped: Boolean;
+    FSegment: Integer;
+    FDistance: Single;
+    FPosition: TPoint;
+    FMoveSpeed: Single;
+    function Calculate(P0, P1, P2, P3: Integer; T: Single): Integer;
+    function CalculatePoint(CP0, CP1, CP2, CP3: TPoint; T: Single): TPoint;
+    function GetPosition: TPoint;
+    function GetSegment: Integer;
+    procedure SetSegment(const Value: Integer);
+    procedure SetLooped(const Value: Boolean);
+    procedure SetDistance(const Value: Single);
+  public
+    FCtrlPts: array of TPoint;
+    function GetPoint(Index: Integer): TPoint;
+    constructor Create(const AParent: TSprite); override;
+    procedure DoMove(const MoveCount: Single); override;
+    destructor Destroy; override;
+    procedure AddPoint(pX, pY: Integer); overload;
+    procedure AddPoint(Point: TPoint); overload;
+    property Looped: Boolean read FLooped write SetLooped;
+    property Segment: Integer read GetSegment write SetSegment;
+    property Distance: Single read FDistance write SetDistance;
+    property Position: TPoint read GetPosition;
+    property MoveSpeed: Single read FMoveSpeed write FMoveSpeed;
   end;
 
   { TSpriteEngine }
@@ -529,6 +560,114 @@ type
 
 
 implementation
+
+{$REGION TPathSprite }
+
+function TPathSprite.Calculate(P0, P1, P2, P3: Integer; T: Single): Integer;
+begin
+  Result := Trunc((2 * P1 + (-P0 + P2) * T + (2 * P0 - 5 * P1 + 4 * P2 - P3) * T * T + (-P0 + 3 * P1
+    - 3 * P2 + P3) * T * T * T) / 2);
+end;
+
+function TPathSprite.CalculatePoint(CP0, CP1, CP2, CP3: TPoint; T: Single
+  ): TPoint;
+begin
+  Result.X := Calculate(CP0.X, CP1.X, CP2.X, CP3.X, T);
+  Result.Y := Calculate(CP0.Y, CP1.Y, CP2.Y, CP3.Y, T);
+end;
+
+function TPathSprite.GetPosition: TPoint;
+begin
+    if FDistance > 1.0 then
+  begin
+    FDistance := FDistance - 1.0;
+    Inc(FSegment);
+    if Looped then
+    begin
+      if FSegment = High(FCtrlPts) + 1 then
+        FSegment := 0;
+    end;
+  end;
+
+  Result := CalculatePoint(GetPoint(FSegment - 1), GetPoint(FSegment), GetPoint(FSegment + 1),
+    GetPoint(FSegment + 2), FDistance);
+end;
+
+function TPathSprite.GetSegment: Integer;
+begin
+  Result := FSegment;
+end;
+
+procedure TPathSprite.SetSegment(const Value: Integer);
+begin
+  FSegment := Value;
+end;
+
+procedure TPathSprite.SetLooped(const Value: Boolean);
+begin
+  FLooped := Value;
+end;
+
+procedure TPathSprite.SetDistance(const Value: Single);
+begin
+  FDistance := Value;
+end;
+
+function TPathSprite.GetPoint(Index: Integer): TPoint;
+begin
+  if Index < 0 then
+  begin
+    Result := FCtrlPts[Length(FCtrlPts) + Index];
+  end
+  else if Index > High(FCtrlPts) then
+  begin
+    Result := FCtrlPts[Index - Length(FCtrlPts)];
+  end
+  else
+  begin
+    Result := FCtrlPts[Index];
+  end;
+end;
+
+constructor TPathSprite.Create(const AParent: TSprite);
+begin
+  inherited Create(AParent);
+  FSegment := 0;
+  FDistance := 0;
+  FLooped := False;
+  FMoveSpeed := 0.01;
+end;
+
+procedure TPathSprite.DoMove(const MoveCount: Single);
+begin
+  inherited DoMove(MoveCount);
+  FDistance := FDistance + FMoveSpeed * MoveCount;
+  X := Position.X;
+  Y := Position.Y;
+end;
+
+destructor TPathSprite.Destroy;
+begin
+  FCtrlPts := nil;
+  inherited Destroy;
+end;
+
+procedure TPathSprite.AddPoint(pX, pY: Integer);
+var
+  Point: TPoint;
+begin
+  Point.X := pX;
+  Point.Y := pY;
+  AddPoint(Point);
+end;
+
+procedure TPathSprite.AddPoint(Point: TPoint);
+begin
+  SetLength(FCtrlPts, Length(FCtrlPts) + 1);
+  FCtrlPts[High(FCtrlPts)] := Point;
+end;
+
+{$ENDREGION}
 
 {$REGION TJumperSpriteEx }
 
