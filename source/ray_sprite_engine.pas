@@ -41,7 +41,6 @@ type
     SearchDirty: Boolean;
     function GetItem(Index: Integer): TFrameRec;
     function GetItemCount(): Integer;
-
     procedure InitSearchObjects();
     procedure SwapSearchObjects(Index1, Index2: Integer);
     function CompareSearchObjects(Obj1, Obj2: TFrameRec): Integer;
@@ -158,7 +157,6 @@ type
   private
     FMirrorMode: TMirrorMode;
     FX1, FY1, FX2, FY2, FX3, FY3, FX4, FY4: Single;
-
     FCenterX, FCenterY: Single;
     FDoCenter: Boolean;
     FColor1, FColor2, FColor3, FColor4: Cardinal;
@@ -328,6 +326,7 @@ type
      procedure Draw; override;
      procedure DrawEx(TypeList: array of string);
      procedure Dead;
+    // procedure Free; overload ; //override;
      function Select(Point: TPoint; Filter: array of TSpriteClass; Add_: Boolean = False): TSprite;overload;
      function Select(Point: TPoint; Add_: Boolean = False): TSprite; overload;
      procedure ClearCurrent;
@@ -433,11 +432,7 @@ var frameRec, Dest: TRectangle;
 
 begin
     if not FImageLib.ContainsKey(FImagename) then Exit;
-
-    RectangleSet(@Dest,
-    FX + FWorldX + Offset.X - FEngine.FWorldX,
-    FY + FWorldY + Offset.Y - FEngine.FWorldY,
-    FPatternWidth * FScaleX, FPatternHeight * FScaleY);
+    BeginBlendMode(Ord(FBlendingEffect));
 
     framerec:= SetPatternRec(FImageLib[FImageName], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
     framerec.width:=FPatternWidth;
@@ -450,8 +445,27 @@ begin
     mirrorXY:    RectangleSet(@frameRec, framerec.x, framerec.y, -Self.PatternWidth,-Self.PatternHeight);
    end;
 
-    DrawTexturePro( FImageLib[FImageName], frameRec, Dest, Vector2Create(0,0), Angle,
-    ColorCreate(Self.Red,Self.Green,Self.Blue,Self.Alpha));
+    case TruncMove of
+   true: begin
+           RectangleSet(@Dest, Round(FX + FWorldX + Offset.X - FEngine.FWorldX),
+                       Round(FY + FWorldY + Offset.Y - FEngine.FWorldY),
+                       Self.PatternWidth  * ScaleX,
+                       Self.PatternHeight * ScaleY);
+             DrawTexturePro(FImageLib[FImageName], frameRec, Dest, Vector2Create(0,0), FAngle,
+             ColorCreate(FRed,FGreen,FBlue,FAlpha));
+         end;
+   false: begin
+            RectangleSet(@Dest, FX + FWorldX + Offset.X - FEngine.FWorldX,
+                                FY + FWorldY + Offset.Y - FEngine.FWorldY,
+                       Self.PatternWidth  * ScaleX,
+                       Self.PatternHeight * ScaleY);
+          DrawTexturePro(FImageLib[FImageName], frameRec, Dest, Vector2Create(0,0), FAngle,
+             ColorCreate(FRed,FGreen,FBlue,FAlpha));
+          end;
+   end;
+
+  EndBlendMode;
+
 end;
 
 procedure TAnimatedSprite.DoMove(const MoveCount: Single);
@@ -750,6 +764,7 @@ var
 begin
    if not FImageLib.ContainsKey(FImagename) then Exit;
 
+   BeginBlendMode(Ord(FBlendingEffect));
    case MirrorMode of
     mirrorNormal:RectangleSet(@Source, 0, 0,Self.ImageWidth,Self.ImageHeight);
     mirrorX:     RectangleSet(@Source, 0, 0,-Self.ImageWidth,Self.ImageHeight);
@@ -775,6 +790,9 @@ begin
            Vector2Create(0, 0), FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
           end;
    end;
+
+   EndBlendMode;
+
 end;
 
 procedure TSpriteEx.Draw;
@@ -1190,7 +1208,6 @@ begin
   ClearCurrent;
   GroupCount := 0;
   FDeadList.Free;
-  inherited Destroy;
   FCurrentSelected.Free;
   inherited Destroy;
 end;
@@ -1464,16 +1481,6 @@ procedure TSprite.DoDraw;
 begin
     if not FVisible then Exit;  if FImageLib = nil then Exit;
 
- {   case  FBlendingEffect of
-    Undefined: BeginBlendMode(-1);
-    Alpha:BeginBlendMode(BLEND_ALPHA);
-    Additive:BeginBlendMode(BLEND_ADDITIVE);
-    Multiplied:BeginBlendMode(BLEND_MULTIPLIED);
-    AddColors:BeginBlendMode(BLEND_ADD_COLORS);
-    Subtract:BeginBlendMode(BLEND_SUBTRACT_COLORS);
-    Custom:BeginBlendMode(BLEND_CUSTOM);
-    end;}
-
     BeginBlendMode(Ord(FBlendingEffect));
 
     case FTruncMove of
@@ -1557,8 +1564,8 @@ begin
     FName := '';
     FZ := 0;
     FDoCollision := False;
-    FMoved := True;         //totototototodoooooooooooo
-    FBlendingEffect := TBlendingEffect.Undefined;  // <----------
+    FMoved := True;
+    FBlendingEffect := TBlendingEffect.Undefined;
     FVisible := True;
     TruncMove := True;
     FTag := 0;
@@ -1567,12 +1574,13 @@ end;
 
 destructor TSprite.Destroy;
 begin
-  Clear;
+
   if FParent <> nil then
-  begin { #todo : fix toengine }
-    //Dec(FEngine.FAllCount);
+  begin
+    Dec(FEngine.FAllCount);
     FParent.Remove(Self);
     FEngine.FDeadList.Remove(Self);
+    Clear;
   end;
   FList.Free;
   FDrawList.Free;
@@ -1603,8 +1611,8 @@ end;
 
 procedure TSprite.Clear;
 begin
-  while Count > 0 do
-    Items[Count - 1].Free;
+  while Self.Count > 0 do
+    Self.Items[Count-1].Free;
 end;
 
 procedure TSprite.Move(const MoveCount: Single);
@@ -1846,7 +1854,7 @@ end;
 
 destructor TAnimations.Destroy();
 begin
-   RemoveAll();
+  RemoveAll();
   inherited Destroy();
 end;
 {$ENDREGION}
