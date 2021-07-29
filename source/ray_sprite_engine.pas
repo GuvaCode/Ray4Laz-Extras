@@ -390,7 +390,6 @@ type
   end;
 
   { TFaderSprite }
-
   TFaderSprite = class(TAnimatedSprite)
   private
     FMirrorCount, FCurrentColorCount, FNumColors: Integer;
@@ -421,6 +420,29 @@ type
     property LoopFade: Boolean read FLooped write FLooped;
   end;
 
+    { TJumperSprite }
+
+    TJumperSprite = class(TPlayerSprite)
+  private
+    FJumpCount: Integer;
+    FJumpSpeed: Single;
+    FJumpHeight: Single;
+    FMaxFallSpeed: Single;
+    FDoJump: Boolean;
+    FJumpState: TJumpState;
+    procedure SetJumpState(Value: TJumpState);
+  public
+    constructor Create(const AParent: TSprite); override;
+    procedure DoMove(const MoveCount: Single); override;
+    procedure Accelerate; override;
+    procedure Deccelerate; override;
+    property JumpCount: Integer read FJumpCount write FJumpCount;
+    property JumpState: TJumpState read FJumpState write SetJumpState;
+    property JumpSpeed: Single read FJumpSpeed write FJumpSpeed;
+    property JumpHeight: Single read FJumpHeight write FJumpHeight;
+    property MaxFallSpeed: Single read FMaxFallSpeed write FMaxFallSpeed;
+    property DoJump: Boolean read FDoJump write FDoJump;
+  end;
 
   { TSpriteEngine }
   TSpriteEngine = class(TSprite)
@@ -469,6 +491,90 @@ type
 
 
 implementation
+
+{$REGION TJumperSprite }
+
+procedure TJumperSprite.SetJumpState(Value: TJumpState);
+begin
+    if FJumpState <> Value then
+  begin
+    FJumpState := Value;
+    case Value of
+      jsNone, jsFalling:
+        begin
+          FVelocityY := 0;
+        end;
+    end;
+  end;
+end;
+
+constructor TJumperSprite.Create(const AParent: TSprite);
+begin
+  inherited Create(AParent);
+  FVelocityX := 0;
+  FVelocityY := 0;
+  MaxSpeed := FMaxSpeed;
+  FDirection := 0;
+  FJumpState := jsNone;
+  FJumpSpeed := 0.25;
+  FJumpHeight := 8;
+  Acceleration := 0.2;
+  Decceleration := 0.2;
+  FMaxFallSpeed := 5;
+  DoJump := False;
+end;
+
+procedure TJumperSprite.DoMove(const MoveCount: Single);
+begin
+  inherited DoMove(MoveCount);
+  case FJumpState of
+    jsNone:
+      begin
+        if DoJump then
+        begin
+          FJumpState := jsJumping;
+          VelocityY := -FJumpHeight;
+        end;
+      end;
+    jsJumping:
+      begin
+        Y := Y + FVelocityY * MoveCount;
+        VelocityY := FVelocityY + FJumpSpeed;
+        if VelocityY > 0 then
+          FJumpState := jsFalling;
+      end;
+    jsFalling:
+      begin
+        Y := Y + FVelocityY * MoveCount;
+        VelocityY := VelocityY + FJumpSpeed;
+        if VelocityY > FMaxFallSpeed then
+          VelocityY := FMaxFallSpeed;
+      end;
+  end;
+  DoJump := False;
+end;
+
+procedure TJumperSprite.Accelerate;
+begin
+    if FSpeed <> FMaxSpeed then
+  begin
+    FSpeed := FSpeed + FAcc;
+    if FSpeed > FMaxSpeed then
+      FSpeed := FMaxSpeed;
+  end;
+end;
+
+procedure TJumperSprite.Deccelerate;
+begin
+  if FSpeed <> FMinSpeed then
+  begin
+    FSpeed := FSpeed - FDcc;
+    if FSpeed < FMinSpeed then
+      FSpeed := FMinSpeed;
+  end;
+end;
+
+{$ENDREGION}
 
 {$REGION TFaderSprite }
 
