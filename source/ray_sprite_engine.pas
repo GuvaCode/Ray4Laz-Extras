@@ -389,6 +389,39 @@ type
     property Direction: Integer read FDirection write SetDirection;
   end;
 
+  { TFaderSprite }
+
+  TFaderSprite = class(TAnimatedSprite)
+  private
+    FMirrorCount, FCurrentColorCount, FNumColors: Integer;
+    FCurCol, FMultiCols: ^Cardinal;
+    FMulti: Boolean;
+    Counter: Single;
+    FSpeed: Single;
+    FLooped, FMultiFade, FMirrorFade, FFadeEnded: Boolean;
+    FSrcR, FSrcG, FSrcB, FSrcA, FDestR, FDestG, FDestB, FDestA, FCurR, FCurG, FCurB, FCurA: Byte;
+    procedure SetFadeSpeed(Speed: Single);
+  public
+    constructor Create(const AParent: TSprite); override;
+    destructor Destroy; override;
+    procedure DoMove(const MoveCount: Single); override;
+    procedure MultiFade(Colors: array of Cardinal);
+    procedure SetSourceColor(fsRed, fsGreen, fsBlue, fsAlpha: Byte); overload;
+    procedure SetSourceColor(Color: Cardinal); overload;
+    procedure SetDestinationColor(fsRed, fsGreen, fsBlue, fsAlpha: Byte); overload;
+    procedure SetDestinationColor(Color: Cardinal); overload;
+    procedure FadeIn(fsRed, fsGreen, fsBlue: Byte; Speed: Single);
+    procedure FadeOut(fsRed, fsGreen, fsBlue: Byte; Speed: Single);
+    procedure SwapColors;
+    procedure Reset;
+    procedure Stop;
+    property FadeEnded: Boolean read FFadeEnded;
+    property FadeSpeed: Single read FSpeed write SetFadeSpeed;
+    property MirrorFade: Boolean read FMirrorFade write FMirrorFade;
+    property LoopFade: Boolean read FLooped write FLooped;
+  end;
+
+
   { TSpriteEngine }
   TSpriteEngine = class(TSprite)
    private
@@ -436,6 +469,210 @@ type
 
 
 implementation
+
+{$REGION TFaderSprite }
+
+procedure TFaderSprite.SetFadeSpeed(Speed: Single);
+begin
+  if Speed > 100 then
+    Speed := 100;
+  if Speed < 0 then
+    Speed := 0;
+  FSpeed := Speed;
+end;
+
+constructor TFaderSprite.Create(const AParent: TSprite);
+begin
+  inherited Create(AParent);
+  FMultiFade := False;
+  FLooped := False;
+  FMulti := False;
+
+  SetFadeSpeed(0.1);
+  SetSourceColor(0, 0, 0, 0);
+  SetDestinationColor(0, 0, 0, 255);
+  FMirrorFade := False;
+  FMirrorCount := 0;
+  Reset;
+end;
+
+destructor TFaderSprite.Destroy;
+begin
+   if FMulti then
+    FreeMem(FMultiCols);
+  inherited Destroy;
+end;
+
+procedure TFaderSprite.DoMove(const MoveCount: Single);
+var
+  a, b: Single;
+begin
+  inherited DoMove(MoveCount);
+  FFadeEnded := False;
+  a := Counter * 0.01;
+  b := 1 - a;
+  FCurR := Round(FSrcR * b + a * FDestR);
+  FCurG := Round(FSrcG * b + a * FDestG);
+  FCurB := Round(FSrcB * b + a * FDestB);
+  FCurA := Round(FSrcA * b + a * FDestA);
+  Counter := Counter + FSpeed * MoveCount;
+  if Counter >= 100 then
+  begin
+    if FMultiFade then
+    begin
+      Inc(FCurrentColorCount);
+      if FCurrentColorCount > FNumColors then
+      begin
+        if FLooped then
+        begin
+          Counter := 0;
+          FCurrentColorCount := 0;
+          FCurCol := FMultiCols;
+          SetSourceColor(FCurR, FCurG, FCurB, FCurA);
+          SetDestinationColor(FCurCol^);
+          Exit;
+        end
+        else
+        begin
+          Counter := 100;
+          FFadeEnded := True;
+          FMultiFade := False;
+          FMulti := False;
+          FreeMem(FMultiCols);
+        end;
+        Exit;
+      end;
+      Inc(FCurCol);
+      Counter := 0;
+      SetSourceColor(FCurR, FCurG, FCurB, FCurA);
+      SetDestinationColor(FCurCol^);
+    end
+    else if FMirrorFade then
+    begin
+      Inc(FMirrorCount);
+      if (FMirrorCount > 1) and (FLooped = False) then
+      begin
+        Counter := 100;
+        FFadeEnded := True;
+      end
+      else
+      begin
+        Counter := 0;
+        SetDestinationColor(FSrcR, FSrcG, FSrcB, FSrcA);
+        SetSourceColor(FCurR, FCurG, FCurB, FCurA);
+      end;
+    end
+    else
+    begin
+      if (FLooped) then
+        Counter := 0
+      else
+      begin
+        Counter := 100;
+        FFadeEnded := True;
+      end;
+    end;
+  end;
+  Self.Red := FCurR;
+  Self.Green := FCurG;
+  Self.Blue := FCurB;
+  Self.Alpha := FCurA;
+end;
+
+procedure TFaderSprite.MultiFade(Colors: array of Cardinal);
+begin
+    GetMem(FMultiCols, SizeOf(Colors));
+  FMulti := True;
+  System.Move(Colors, FMultiCols^, SizeOf(Colors));
+  FNumColors := High(Colors);
+  if FNumColors < 0 then
+    Exit;
+  SetSourceColor(Colors[0]);
+  if FNumColors > 0 then
+    SetDestinationColor(Colors[1]);
+  FCurrentColorCount := 0;
+  FCurCol := FMultiCols;
+  Inc(FCurCol);
+  FMultiFade := True;
+  Reset;
+end;
+
+procedure TFaderSprite.SetSourceColor(fsRed, fsGreen, fsBlue, fsAlpha: Byte);
+begin
+  FSrcR := fsRed;
+  FSrcG := fsGreen;
+  FSrcB := fsBlue;
+  FSrcA := fsAlpha;
+  FCurR := fsRed;
+  FCurG := fsGreen;
+  FCurB := fsBlue;
+  FCurA := fsAlpha;
+end;
+
+procedure TFaderSprite.SetSourceColor(Color: Cardinal);
+begin
+  SetSourceColor(cRGB1(Red, Green, Blue, Alpha));
+end;
+
+procedure TFaderSprite.SetDestinationColor(fsRed, fsGreen, fsBlue, fsAlpha: Byte
+  );
+begin
+  FDestR := fsRed;
+  FDestG := fsGreen;
+  FDestB := fsBlue;
+  FDestA := fsAlpha;
+end;
+
+procedure TFaderSprite.SetDestinationColor(Color: Cardinal);
+begin
+  SetDestinationColor(cRGB1(Red, Green, Blue, Alpha));
+end;
+
+procedure TFaderSprite.FadeIn(fsRed, fsGreen, fsBlue: Byte; Speed: Single);
+begin
+  SetSourceColor(fsRed, fsGreen, fsBlue, 0);
+  SetDestinationColor(fsRed, fsGreen, fsBlue, 255);
+  SetFadeSpeed(Speed);
+  Reset;
+end;
+
+procedure TFaderSprite.FadeOut(fsRed, fsGreen, fsBlue: Byte; Speed: Single);
+begin
+  SetSourceColor(fsRed, fsGreen, fsBlue, 255);
+  SetDestinationColor(fsRed, fsGreen, fsBlue, 0);
+  SetFadeSpeed(Speed);
+  Reset;
+end;
+
+procedure TFaderSprite.SwapColors;
+begin
+  FCurR := FDestR;
+  FCurG := FDestG;
+  FCurB := FDestB;
+  FCurA := FDestA;
+  FDestR := FSrcR;
+  FDestG := FSrcG;
+  FDestB := FSrcB;
+  FDestA := FSrcA;
+  FSrcR := FCurR;
+  FSrcG := FCurG;
+  FSrcB := FCurB;
+  FSrcA := FCurA;
+end;
+
+procedure TFaderSprite.Reset;
+begin
+  Counter := 0;
+  FMirrorCount := 0;
+  FFadeEnded := False;
+end;
+
+procedure TFaderSprite.Stop;
+begin
+  FFadeEnded := True;
+end;
+
+{$ENDREGION}
 
 {$REGION TPlayerSprite }
 
