@@ -420,9 +420,8 @@ type
     property LoopFade: Boolean read FLooped write FLooped;
   end;
 
-    { TJumperSprite }
-
-    TJumperSprite = class(TPlayerSprite)
+  { TJumperSprite }
+  TJumperSprite = class(TPlayerSprite)
   private
     FJumpCount: Integer;
     FJumpSpeed: Single;
@@ -436,6 +435,45 @@ type
     procedure DoMove(const MoveCount: Single); override;
     procedure Accelerate; override;
     procedure Deccelerate; override;
+    property JumpCount: Integer read FJumpCount write FJumpCount;
+    property JumpState: TJumpState read FJumpState write SetJumpState;
+    property JumpSpeed: Single read FJumpSpeed write FJumpSpeed;
+    property JumpHeight: Single read FJumpHeight write FJumpHeight;
+    property MaxFallSpeed: Single read FMaxFallSpeed write FMaxFallSpeed;
+    property DoJump: Boolean read FDoJump write FDoJump;
+  end;
+
+  { TJumperSpriteEx }
+
+  TJumperSpriteEx = class(TPlayerSprite)
+  private
+    FJumpCount: Integer;
+    FJumpSpeed: Single;
+    FJumpStartSpeed: Single;
+    FJumpHeight: Single;
+    FLowJumpSpeed: Single;
+    FLowJumpGravity: Single;
+    FHighJumpValue: Integer;
+    FHighJumpSpeed: Single;
+    FFallingSpeed: Single;
+    FMaxFallSpeed: Single;
+    FDoJump: Boolean;
+    FJumpState: TJumpState;
+    FHoldKey: Boolean;
+    FOffset: Single;
+    procedure SetJumpState(Value: TJumpState);
+  public
+    constructor Create(const AParent: TSprite); override;
+    procedure DoMove(const MoveCount: Single); override;
+    procedure Accelerate; override;
+    procedure Deccelerate; override;
+    property JumpStartSpeed: Single read FJumpStartSpeed write FJumpStartSpeed;
+    property LowJumpSpeed: Single read FLowJumpSpeed write FLowJumpSpeed;
+    property LowJumpGravity: Single read FLowJumpGravity write FLowJumpGravity;
+    property HighJumpValue: Integer read FHighJumpValue write FHighJumpValue;
+    property HighJumpSpeed: Single read FHighJumpSpeed write FHighJumpSpeed;
+    property FallingSpeed: Single read FFallingSpeed write FFallingSpeed;
+    property HoldKey: Boolean read FHoldKey write FHoldKey;
     property JumpCount: Integer read FJumpCount write FJumpCount;
     property JumpState: TJumpState read FJumpState write SetJumpState;
     property JumpSpeed: Single read FJumpSpeed write FJumpSpeed;
@@ -491,6 +529,115 @@ type
 
 
 implementation
+
+{$REGION TJumperSpriteEx }
+
+procedure TJumperSpriteEx.SetJumpState(Value: TJumpState);
+begin
+  if FJumpState <> Value then
+  begin
+    FJumpState := Value;
+    case Value of
+      jsNone, jsFalling:
+        begin
+          FVelocityY := 0;
+        end;
+    end;
+  end;
+end;
+
+constructor TJumperSpriteEx.Create(const AParent: TSprite);
+begin
+  inherited Create(AParent);
+  FVelocityX := 0;
+  FVelocityY := 0;
+  MaxSpeed := FMaxSpeed;
+  FDirection := 0;
+  FJumpState := jsNone;
+  FJumpSpeed := 0.2;
+  FJumpStartSpeed := 0.2;
+  FLowJumpSpeed := 0.185;
+  FLowJumpGravity := 0.6;
+  FHighJumpValue := 1000;
+  FHighJumpSpeed := 0.1;
+  FFallingSpeed := 0.2;
+  FJumpCount := 0;
+  FJumpHeight := 8;
+  Acceleration := 0.2;
+  Decceleration := 0.2;
+  FMaxFallSpeed := 5;
+  DoJump := False;
+end;
+
+procedure TJumperSpriteEx.DoMove(const MoveCount: Single);
+begin
+  inherited DoMove(MoveCount);
+  case FJumpState of
+    jsNone:
+      begin
+        if DoJump then
+        begin
+          FHoldKey := True;
+          FJumpSpeed := FJumpStartSpeed;
+          FJumpState := jsJumping;
+          VelocityY := -FJumpHeight;
+        end;
+      end;
+    jsJumping:
+      begin
+        if FHoldKey = True then
+          Inc(FJumpCount);
+        if FHoldKey = False then
+        begin
+          FJumpSpeed := FLowJumpSpeed; // 0.185;
+          FOffset := VelocityY;
+          VelocityY := FOffset * FLowJumpGravity; // 0.6;  //range 0.0-->1.0
+          FHoldKey := True;
+          FJumpCount := 0;
+        end;
+        if (FJumpCount > FHighJumpValue) then
+          FJumpSpeed := FHighJumpSpeed;
+        Y := Y + FVelocityY * MoveCount;
+        VelocityY := FVelocityY + FJumpSpeed * MoveCount;
+        if VelocityY > 0 then
+          FJumpState := jsFalling;
+      end;
+    jsFalling:
+      begin
+        FJumpCount := 0;
+        FJumpSpeed := FFallingSpeed;
+        Y := Y + FVelocityY * MoveCount;
+        VelocityY := VelocityY + FJumpSpeed * MoveCount;
+        if VelocityY > FMaxFallSpeed then
+          VelocityY := FMaxFallSpeed;
+      end;
+  end;
+  DoJump := False;
+end;
+
+procedure TJumperSpriteEx.Accelerate;
+begin
+   if FSpeed <> FMaxSpeed then
+  begin
+    FSpeed := FSpeed + FAcc;
+    if FSpeed > FMaxSpeed then
+      FSpeed := FMaxSpeed;
+    VelocityX := Cos256(FDirection) * Speed;
+  end;
+end;
+
+procedure TJumperSpriteEx.Deccelerate;
+begin
+  if FSpeed <> FMaxSpeed then
+  begin
+    FSpeed := FSpeed + FAcc;
+    if FSpeed < FMaxSpeed then
+      FSpeed := FMaxSpeed;
+    VelocityX := Cos256(FDirection) * Speed;
+  end;
+end;
+
+{$ENDREGION}
 
 {$REGION TJumperSprite }
 
