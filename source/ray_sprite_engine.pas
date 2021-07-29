@@ -258,7 +258,6 @@ type
   end;
 
   { TAnimatedSprite }
-
   TAnimatedSprite = class(TSpriteEx)
   private
     FDoAnimate: Boolean;
@@ -301,6 +300,41 @@ type
     property AnimLooped: Boolean read FAnimLooped write FAnimLooped;
     property DoAnimate: Boolean read FDoAnimate write FDoAnimate;
     property AnimPlayMode: TAnimPlayMode read FAnimPlayMode write FAnimPlayMode;
+  end;
+
+  { TCustomAnimSprite }
+  TCustomAnimSprite = class(TSpriteEx)
+  private
+    FAnimations: TAnimations;
+    FDoAnimate: Boolean;
+    FAnimLooped: Boolean;
+    FAnimStart: Integer;
+    FAnimCount: Integer;
+    FAnimSpeed: Single;
+    FAnimPos: Single;
+    FAnimEnded: Boolean;
+    FFRameName: string;
+    function GetAnimCount: Integer;
+    procedure SetAnimStart(Value: Integer);
+    property AnimStart: Integer read FAnimStart write SetAnimStart;
+    procedure SetFrameName(Value: string);
+  public
+    constructor Create(const AParent: TSprite); override;
+    destructor Destroy(); override;
+    procedure Assign(const Value: TSprite); override;
+    procedure DoMove(const MoveCount: Single); override;
+    procedure AddFrames(AFrameName: string; AFrames: array of Cardinal);
+    procedure SetAnim(AniImageName: string; AFrameName: string; AniSpeed: Single; AniLooped,
+      DoMirror, DoAnimate: Boolean); overload; virtual;
+    procedure OnAnimStart; virtual;
+    procedure OnAnimEnd; virtual;
+    property FrameName: string read FFRameName write SetFrameName;
+    property AnimPos: Single read FAnimPos write FAnimPos;
+    property AnimCount: Integer read GetAnimCount;
+    property AnimSpeed: Single read FAnimSpeed write FAnimSpeed;
+    property AnimLooped: Boolean read FAnimLooped write FAnimLooped;
+    property DoAnimate: Boolean read FDoAnimate write FDoAnimate;
+    property AnimEnded: Boolean read FAnimEnded;
   end;
 
   { TSpriteEngine }
@@ -349,7 +383,116 @@ type
 
 implementation
 
-{ TAnimatedSprite }
+{$REGION TCustomAnimSprite }
+
+function TCustomAnimSprite.GetAnimCount: Integer;
+begin
+  Result := High(FAnimations.Frame[FFRameName].Frames) + 1;
+end;
+
+procedure TCustomAnimSprite.SetAnimStart(Value: Integer);
+begin
+  if FAnimStart <> Value then
+  begin
+    FAnimStart := Value;
+    FAnimPos := Value;
+  end;
+end;
+
+procedure TCustomAnimSprite.SetFrameName(Value: string);
+begin
+  if FFRameName <> Value then
+    FFRameName := Value;
+  FAnimCount := GetAnimCount;
+end;
+
+constructor TCustomAnimSprite.Create(const AParent: TSprite);
+begin
+  inherited Create(AParent);
+  FAnimations := TAnimations.Create;
+  FDoAnimate := False;
+  FAnimLooped := True;
+  FAnimStart := 0;
+  FAnimCount := 0;
+  FAnimSpeed := 0;
+  FAnimPos := 0;
+end;
+
+destructor TCustomAnimSprite.Destroy();
+begin
+  FAnimations.RemoveAll();
+  FAnimations.Free;
+  inherited Destroy();
+end;
+
+procedure TCustomAnimSprite.Assign(const Value: TSprite);
+begin
+  if (Value is TCustomAnimSprite) then
+  begin
+    DoAnimate := TCustomAnimSprite(Value).DoAnimate;
+    AnimPos := TCustomAnimSprite(Value).FAnimPos;
+    AnimSpeed := TCustomAnimSprite(Value).AnimSpeed;
+    AnimLooped := TCustomAnimSprite(Value).AnimLooped;
+  end;
+  inherited Assign(Value);
+end;
+
+procedure TCustomAnimSprite.DoMove(const MoveCount: Single);
+begin
+    if not FDoAnimate then
+    Exit;
+  FAnimPos := FAnimPos + FAnimSpeed * MoveCount;
+  if (FAnimPos >= FAnimStart + FAnimCount) then
+  begin
+    if (Trunc(FAnimPos)) = FAnimStart then
+      OnAnimStart;
+    if (Trunc(FAnimPos)) = FAnimStart + FAnimCount then
+    begin
+      FAnimEnded := True;
+      OnAnimEnd;
+    end;
+    if FAnimLooped then
+      FAnimPos := FAnimStart
+    else
+    begin
+      FAnimPos := FAnimStart + FAnimCount - 1;
+      FDoAnimate := False;
+    end;
+  end;
+  FImageIndex := FAnimations.Frame[FFRameName].Frames[Trunc(FAnimPos)];
+end;
+
+procedure TCustomAnimSprite.AddFrames(AFrameName: string;
+  AFrames: array of Cardinal);
+begin
+  FAnimations.AddFrames(AFrameName, AFrames);
+end;
+
+procedure TCustomAnimSprite.SetAnim(AniImageName: string; AFrameName: string;
+  AniSpeed: Single; AniLooped, DoMirror, DoAnimate: Boolean);
+begin
+  ImageName := AniImageName;
+  FFRameName := AFrameName;
+  FAnimStart := 0;
+  FAnimCount := GetAnimCount;
+  FAnimSpeed := AniSpeed;
+  FAnimLooped := AniLooped;
+  If DoMirror then Self.MirrorMode := MirrorX;
+  FDoAnimate := DoAnimate;
+end;
+
+procedure TCustomAnimSprite.OnAnimStart;
+begin
+  // -- // -- //
+end;
+
+procedure TCustomAnimSprite.OnAnimEnd;
+begin
+  // -- // -- //
+end;
+{$ENDREGION}
+
+{$REGION TAnimatedSprite }
 
 procedure TAnimatedSprite.SetAnimStart(Value: Integer);
 begin
@@ -616,6 +759,7 @@ begin
       FPatternCount := 1;
   end;
 end;
+{$ENDREGION}
 
 {$REGION TSpriteEx }
 
