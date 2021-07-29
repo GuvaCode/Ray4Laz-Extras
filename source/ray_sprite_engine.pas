@@ -337,6 +337,28 @@ type
     property AnimEnded: Boolean read FAnimEnded;
   end;
 
+  { TParticleSprite }
+  TParticleSprite = class(TAnimatedSprite)
+  private
+    FAccelX: Real;
+    FAccelY: Real;
+    FVelocityX: Real;
+    FVelocityY: Real;
+    FUpdateSpeed: Single;
+    FDecay: Real;
+    FLifeTime: Real;
+  public
+    constructor Create(const AParent: TSprite); override;
+    procedure DoMove(const MoveCount: Single); override;
+    property AccelX: Real read FAccelX write FAccelX;
+    property AccelY: Real read FAccelY write FAccelY;
+    property VelocityX: Real read FVelocityX write FVelocityX;
+    property VelocityY: Real read FVelocityY write FVelocityY;
+    property UpdateSpeed: Single read FUpdateSpeed write FUpdateSpeed;
+    property Decay: Real read FDecay write FDecay;
+    property LifeTime: Real read FLifeTime write FLifeTime;
+  end;
+
   { TSpriteEngine }
   TSpriteEngine = class(TSprite)
    private
@@ -381,7 +403,36 @@ type
      property GroupCount: Integer read FGroupCount write SetGroupCount;
    end;
 
+
+
 implementation
+
+{$REGION TParticleSprite }
+
+constructor TParticleSprite.Create(const AParent: TSprite);
+begin
+  inherited Create(AParent);
+  FAccelX := 0;
+  FAccelY := 0;
+  FVelocityX := 0;
+  FVelocityY := 0;
+  FUpdateSpeed := 0;
+  FDecay := 0;
+  FLifeTime := 1;
+end;
+
+procedure TParticleSprite.DoMove(const MoveCount: Single);
+begin
+  inherited DoMove(MoveCount);
+  X := X + FVelocityX * UpdateSpeed * MoveCount;
+  Y := Y + FVelocityY * UpdateSpeed * MoveCount;
+  FVelocityX := FVelocityX + FAccelX * UpdateSpeed;
+  FVelocityY := FVelocityY + FAccelY * UpdateSpeed;
+  FLifeTime := FLifeTime - FDecay * MoveCount;
+  if FLifeTime <= 0 then Dead;
+end;
+
+{$ENDREGION}
 
 {$REGION TCustomAnimSprite }
 
