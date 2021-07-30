@@ -3,8 +3,6 @@ Ray4Laz Extra. Spite Engine for RayLib.
 based on code SpriteEngine by DraculaLin,for Afterwarp Framework.
 }
 
-{ #todo : Unbind from sysutils dependencies  }
-
 unit ray_sprite_engine;
 
 {$mode ObjFPC}{$H+}
@@ -12,7 +10,7 @@ unit ray_sprite_engine;
 interface
 
 uses
-  cmem, ray_header, ray_math_ex, Generics.Collections,
+  cmem, ray_header, ray_math_ex,fgl, { Generics.Collections,}
    Math, Classes, SysUtils;
 
 type
@@ -79,9 +77,9 @@ type
   TSprite = class
   private
     FEngine: TSpriteEngine;
-    FImageLib: specialize TDictionary<string, TTexture>;
-    FList: specialize TList<TSprite>;
-    FDrawList: specialize TList<TSprite>;
+    FImageLib: specialize TFPGMap<string, TTexture>;
+    FList: specialize TFPGList<TSprite>;
+    FDrawList: specialize TFPGList<TSprite>;
     FParent: TSprite;
     FDeaded: Boolean;
     FWidth: Integer;
@@ -139,7 +137,7 @@ type
     property Y: Single read FY write SetY;
     property Z: Integer read FZ write SetZ;
     property ImageName: string read FImageName write FImageName;
-    property ImageLib: specialize TDictionary<string, TTexture> read FImageLib write FImageLib;
+    property ImageLib: specialize TFPGMap<string, TTexture> read FImageLib write FImageLib;
     property ImageIndex: Integer read FImageIndex write FImageIndex;
     property ImageWidth: Integer read GetImageWidth;
     property ImageHeight: Integer read GetImageHeight;
@@ -159,7 +157,7 @@ type
     property CollideMode: TCollideMode read FCollideMode write FCollideMode;
     property Collisioned: Boolean read FCollisioned write FCollisioned;
     property Items[Index: Integer]: TSprite read GetItem; Default;
-    property SpriteList: specialize TList<TSprite> read FList write FList;
+    property SpriteList: specialize TFPGList<TSprite> read FList write FList;
     property Count: Integer read GetCount;
     property Engine: TSpriteEngine read FEngine write FEngine;
     property Parent: TSprite read FParent;
@@ -1687,7 +1685,10 @@ procedure TAnimatedSprite.DoDraw;
 var frameRec, Dest: TRectangle;
 
 begin
-    if not FImageLib.ContainsKey(FImagename) then Exit;
+   // if not FImageLib.ContainsKey(FImagename) then Exit;
+  //  if not FImageLib.Find(FImageName);
+    if FImageLib.IndexOf(FImageName) <0 then Exit;
+
     BeginBlendMode(Ord(FBlendingEffect));
 
     framerec:= SetPatternRec(FImageLib[FImageName], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
@@ -1862,7 +1863,8 @@ begin
   FPatternHeight := APatternHeight;
   if FImageLib <> nil then
   begin
-    if FImageLib.ContainsKey(FImageName) then
+    //if FImageLib.ContainsKey(FImageName) then
+      if FImageLib.IndexOf(FImageName) >=0 then
     begin
        ColCount := FImageLib[FImageName].Width div FPatternWidth;
        RowCount := FImageLib[FImageName].Height div FPatternHeight;
@@ -2019,8 +2021,8 @@ var
   Source: TRectangle;
   Dest: TRectangle;
 begin
-   if not FImageLib.ContainsKey(FImagename) then Exit;
-
+  // if not FImageLib.ContainsKey(FImagename) then Exit;
+   if FImageLib.IndexOf(FImagename)<0 then Exit;
    BeginBlendMode(Ord(FBlendingEffect));
    case MirrorMode of
     mirrorNormal:RectangleSet(@Source, 0, 0,Self.ImageWidth,Self.ImageHeight);
@@ -2647,8 +2649,8 @@ procedure TSprite.Add(Sprite: TSprite);
 begin
     if FList = nil then
   begin
-    FList :=  specialize TList<TSprite>.Create;
-    FDrawList := specialize TList<TSprite>.Create;
+    FList :=  specialize TFPGList<TSprite>.Create;
+    FDrawList := specialize TFPGList<TSprite>.Create;
   end;
   FList.Add(Sprite);
 end;
