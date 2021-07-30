@@ -22,12 +22,12 @@
         <UnitName Value="ray_application"/>
       </Item2>
       <Item3>
-        <Filename Value="../source/ray_sprite.pas"/>
-        <UnitName Value="ray_sprite"/>
-      </Item3>
-      <Item4>
         <Filename Value="../source/ray_model.pas"/>
         <UnitName Value="ray_model"/>
+      </Item3>
+      <Item4>
+        <Filename Value="../source/ray_sprite_engine.pas"/>
+        <UnitName Value="ray_sprite_engine"/>
       </Item4>
     </Files>
     <CompatibilityMode Value="True"/>
