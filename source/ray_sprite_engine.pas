@@ -1,3 +1,10 @@
+{
+Ray4Laz Extra. Spite Engine for RayLib.
+based on code SpriteEngine by DraculaLin,for Afterwarp Framework.
+}
+
+{ #todo : Unbind from sysutils dependencies  }
+
 unit ray_sprite_engine;
 
 {$mode ObjFPC}{$H+}
@@ -5,10 +12,11 @@ unit ray_sprite_engine;
 interface
 
 uses
-  cmem, ray_header, fgl, Generics.Collections,
+  cmem, ray_header, Generics.Collections,
   TypesEx, Math, Classes, SysUtils;
 
 type
+  {$Region Enum}
   TBlendingEffect = ( Undefined = -1, Alpha, Additive, Multiplied, AddColors,
   Subtract, Custom);
 
@@ -22,7 +30,11 @@ type
 
   TMirrorMode = (MirrorNormal , MirrorX , MirrorY , MirrorXY);
 
+  TGUIType = (gtNormal, gtForm, gtButton, gtScrollBar, gtEdit);
+
   TTileMode = (tmHorizontal, tmVertical, tmFull);
+
+  {$EndRegion}
 
   TFrameRec = record
     FrameName: string;
@@ -513,6 +525,51 @@ type
     property MoveSpeed: Single read FMoveSpeed write FMoveSpeed;
   end;
 
+  TContainer = array[0..20, 0..50] of TRect;
+
+  { TGUISprite }
+  TGUISprite = class(TAnimatedSprite)
+  private
+    FOwner: TGUISprite;
+    FEnabled: Boolean;
+    FGUIType: TGUIType;
+    FHighLight: Boolean;
+    FCaption: string;
+    FShowHint: Boolean;
+    FHintString: string;
+    FCanDrag: Boolean;
+    FCanFlip: Boolean;
+    FPickUp: Boolean;
+    FCanPickUp: Boolean;
+    FUseContainer: Boolean;
+    FZList: TList;
+    FMouseOffsetX, FMouseOffsetY: Integer;
+    FIsMouseDown: Boolean;
+    FClicked: Boolean;
+  public
+    Container: TContainer;
+    constructor Create(const AParent: TSprite); override;
+    destructor Destroy; override;
+    procedure DoMove(const MoveCount: Single); override;
+    procedure OnLMouseUp; override;
+    procedure OnLMouseDown; override;
+    procedure OnMouseMove; override;
+    procedure OnMouseEnter; override;
+    procedure OnMouseLeave; override;
+    procedure OnMouseDrag; override;
+    property GuiType: TGUIType read FGUIType write FGUIType;
+    property Enabled: Boolean read FEnabled write FEnabled;
+    property HighLight: Boolean read FHighLight write FHighLight;
+    property ShowHint: Boolean read FShowHint write FShowHint;
+    property HintString: string read FHintString write FHintString;
+    property CanDrag: Boolean read FCanDrag write FCanDrag;
+    property CanFlip: Boolean read FCanFlip write FCanFlip;
+    property CanPickUp: Boolean read FCanPickUp write FCanPickUp;
+    property UseContainer: Boolean read FUseContainer write FUseContainer;
+    property Caption: string read FCaption write FCaption;
+    property Owner: TGUISprite read FOwner write FOwner;
+  end;
+
   { TSpriteEngine }
   TSpriteEngine = class(TSprite)
    private
@@ -558,10 +615,274 @@ type
    end;
 
 
-
 implementation
 
-{$REGION TPathSprite }
+{$Region TGUISprite }
+
+function Rects(Left, Top, Right, Bottom: Single): TRect;
+begin
+  Result.Left := Trunc(Left);
+  Result.Top := Trunc(Top);
+  Result.Right := Trunc(Right);
+  Result.Bottom := Trunc(Bottom);
+end;
+
+function PointInRects(const Point: TPoint; const Rect: TRect): Boolean;
+begin
+  Result := (Trunc(Point.X) >= Trunc(Rect.Left)) and (Trunc(Point.X) <= Trunc(Rect.Right)) and (Trunc
+    (Point.Y) >= Trunc(Rect.Top)) and (Trunc(Point.Y) <= Trunc(Rect.Bottom));
+end;
+
+constructor TGUISprite.Create(const AParent: TSprite);
+var
+  I, J: Integer;
+begin
+  inherited Create(AParent);
+  FGUIType := gtNormal;
+  FCanDrag := False;
+  FCanFlip := False;
+  FHighLight := False;
+  FEnabled := True;
+  FShowHint := False;
+  FHintString := '';
+  FOwner := nil;
+  FPickUp := False;
+  FCanPickUp := False;
+  FUseContainer := False;
+  FZList := TList.Create;
+  FIsMouseDown := False;
+  FClicked := False;
+
+  for I := 0 to 20 do
+    for J := 0 to 50 do
+      Container[I, J] := Rect(0, 0, 0, 0);
+end;
+
+destructor TGUISprite.Destroy;
+begin
+  FZList.Free;
+  inherited Destroy;
+end;
+
+procedure TGUISprite.DoMove(const MoveCount: Single);
+var
+  I, J, K: Integer;
+  Left, Top, Right, Bottom: Integer;
+  SpriteX, SpriteY: Single;
+begin
+  inherited DoMove(MoveCount);
+  FActiveRect := Rect(Round(X), Round(Y), Round(X + FWidth), Round(Y + FHeight));
+  if (CanPickUp) and (FPickUp) then
+  begin
+    Detach;
+    X := GetMouseX - Width div 2;
+    Y := GetMouseY - Height div 2;
+    if FShowHint then
+      FShowHint := False;
+    for I := 0 to 20 do
+    begin
+      for J := 0 to 50 do
+      begin
+        for K := 0 to Engine.Count - 1 do
+        begin
+          if TGUISprite(FEngine.Items[K]).UseContainer and TGUISprite(FEngine.Items[K]).Visible then
+          begin
+            SpriteX := TGUISprite(FEngine.Items[K]).X;
+            SpriteY := TGUISprite(FEngine.Items[K]).Y;
+            Left := TGUISprite(FEngine.Items[K]).Container[I, J].Left;
+            Top := TGUISprite(FEngine.Items[K]).Container[I, J].Top;
+            Right := TGUISprite(FEngine.Items[K]).Container[I, J].Right;
+            Bottom := TGUISprite(FEngine.Items[K]).Container[I, J].Bottom;
+            if PointInRects(Point(Trunc(X) + (Width div 2), Trunc(Y) + (Height div 2)), Rects(Left +
+              SpriteX, Top + SpriteY, Right + SpriteX, Bottom + SpriteY)) then
+            begin
+              // FEngine.FCanvas.FillRect(
+              // Rects(Left + SpriteX,
+              // Top + SpriteY,
+              // Right + SpriteX,
+              // Bottom + SpriteY),
+              // cRGB4(0,255,0,80), opDiffuse);
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  if (FIsMouseDown) and (FCanPickUp) then
+  begin
+    for I := 0 to 20 do
+    begin
+      for J := 0 to 50 do
+      begin
+        for K := 0 to Engine.Count - 1 do
+        begin
+          if (TGUISprite(FEngine.Items[K]).UseContainer) then
+          begin
+            SpriteX := TGUISprite(FEngine.Items[K]).X;
+            SpriteY := TGUISprite(FEngine.Items[K]).Y;
+            Left := TGUISprite(FEngine.Items[K]).Container[I, J].Left;
+            Top := TGUISprite(FEngine.Items[K]).Container[I, J].Top;
+            Right := TGUISprite(FEngine.Items[K]).Container[I, J].Right;
+            Bottom := TGUISprite(FEngine.Items[K]).Container[I, J].Bottom;
+            if PointInRects(Point(Trunc(X) + (Width div 2), Trunc(Y) + (Height div 2)), Rects(Left +
+              SpriteX, Top + SpriteY, Right + SpriteX, Bottom + SpriteY)) then
+            begin
+              if (FIsMouseDown) then
+              begin
+                if FCanPickUp then
+                  FPickUp := not FPickUp;
+                if (CanPickUp) and (FPickUp = False) then
+                begin
+                  FShowHint := True;
+                end;
+                if TGUISprite(FEngine.Items[K]).FClicked then
+                  Owner := TGUISprite(FEngine.Items[K]);
+                Self.X := Left + SpriteX;
+                Self.Y := Top + SpriteY;
+                FIsMouseDown := False;
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+  if (FOwner <> nil) then
+  begin
+    Attach(FOwner);
+    Self.Z := FOwner.Z + 1;
+    Self.Visible := FOwner.Visible;
+  end;
+end;
+
+function CompareInteger(Int1, Int2: Integer): Integer;
+begin
+  if Int1 > Int2 then
+    Result := 1
+  else if Int1 < Int2 then
+    Result := -1
+  else
+    Result := 0;
+end;
+
+function Compares(Item1, Item2: Pointer): Integer;
+var
+  PI1, PI2: Plongint;
+begin
+  PI1 := Item1;
+  PI2 := Item2;
+  Result := CompareInteger(PI1^, PI2^);
+end;
+
+procedure TGUISprite.OnLMouseUp;
+begin
+  FIsMouseDown := False;
+end;
+
+procedure TGUISprite.OnLMouseDown;
+var
+  I: Integer;
+  CurrentZ, ZArray: array of^Integer;
+  Last: ^Integer;
+begin
+  FIsMouseDown := True;
+  FMouseOffsetX := Round(Self.X - GetMouseX);
+  FMouseOffsetY := Round(Self.Y - GetMouseX);
+  SetLength(ZArray, FEngine.Count);
+  SetLength(CurrentZ, FEngine.Count);
+  for I := 0 to FEngine.Count - 1 do
+  begin
+    New(CurrentZ[I]);
+    if (TGUISprite(FEngine.Items[I]).MouseInRect) and TGUISprite(FEngine.Items[I]).FVisible then
+      CurrentZ[I]^ := TGUISprite(FEngine.Items[I]).Z;
+    FZList.Add(CurrentZ[I]);
+
+  end;
+  FZList.Sort(@Compares);
+  Last := FZList.Last;
+
+  for I := 0 to FEngine.Count - 1 do
+  begin
+    New(ZArray[I]);
+    ZArray[I] := FZList.Items[I];
+  end;
+  if FZList.Count > 0 then
+  begin
+    for I := 0 to FEngine.Count - 1 do
+    begin
+      if (TGUISprite(FEngine.Items[I]).Z <> Last^) then
+      begin
+        TGUISprite(FEngine.Items[I]).FCanFlip := False;
+      end;
+      if TGUISprite(FEngine.Items[I]).Z = Last^ then
+        TGUISprite(FEngine.Items[I]).FClicked := True;
+    end;
+  end;
+
+  if (FVisible) and (FCanFlip) then
+  begin
+    Inc(Engine.FZCounter, 2);
+    Self.Z := FEngine.FZCounter;
+  end;
+  for I := 0 to FEngine.Count - 1 do
+  begin
+    TGUISprite(FEngine.Items[I]).FCanFlip := True;
+    if (CanPickUp) and (FPickUp) then
+    begin
+      TGUISprite(FEngine.Items[I]).FClicked := False;
+    end;
+  end;
+
+  FZList.Clear;
+end;
+
+procedure TGUISprite.OnMouseMove;
+begin
+  // -- // -- //
+end;
+
+procedure TGUISprite.OnMouseEnter;
+var
+  StringW: Integer;
+  MiddlePos: Integer;
+begin
+  if not Visible then
+    Exit;
+
+  if ShowHint then
+  begin
+    StringW := Length(HintString) * 7;
+    MiddlePos := StringW div 2 - 12;
+    /// todo
+  end;
+end;
+
+procedure TGUISprite.OnMouseLeave;
+begin
+  BlendingEffect := TBlendingEffect.Undefined;
+end;
+
+procedure TGUISprite.OnMouseDrag;
+begin
+   if (FCanDrag) and (FVisible) then
+  begin
+    if (GuiType <> gtForm) then
+    begin
+      FX := GetMouseX + FMouseOffsetX;
+      FY := GetMouseY + FMouseOffsetY;
+    end;
+    if (GuiType = gtForm) and (Z = FEngine.FZCounter) then
+    begin
+      FX := GetMouseX + FMouseOffsetX;
+      FY := GetMouseY + FMouseOffsetY;
+    end;
+  end;
+end;
+
+{$EndRegion}
+
+{$Region TPathSprite }
 
 function TPathSprite.Calculate(P0, P1, P2, P3: Integer; T: Single): Integer;
 begin
@@ -667,9 +988,9 @@ begin
   FCtrlPts[High(FCtrlPts)] := Point;
 end;
 
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TJumperSpriteEx }
+{$Region TJumperSpriteEx }
 
 procedure TJumperSpriteEx.SetJumpState(Value: TJumpState);
 begin
@@ -776,9 +1097,9 @@ begin
   end;
 end;
 
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TJumperSprite }
+{$Region TJumperSprite }
 
 procedure TJumperSprite.SetJumpState(Value: TJumpState);
 begin
@@ -860,9 +1181,9 @@ begin
   end;
 end;
 
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TFaderSprite }
+{$Region TFaderSprite }
 
 procedure TFaderSprite.SetFadeSpeed(Speed: Single);
 begin
@@ -1064,9 +1385,9 @@ begin
   FFadeEnded := True;
 end;
 
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TPlayerSprite }
+{$Region TPlayerSprite }
 
 procedure TPlayerSprite.SetSpeed(Value: Single);
 begin
@@ -1146,9 +1467,9 @@ begin
   end;
 end;
 
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TParticleSprite }
+{$Region TParticleSprite }
 
 constructor TParticleSprite.Create(const AParent: TSprite);
 begin
@@ -1173,9 +1494,9 @@ begin
   if FLifeTime <= 0 then Dead;
 end;
 
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TCustomAnimSprite }
+{$Region TCustomAnimSprite }
 
 function TCustomAnimSprite.GetAnimCount: Integer;
 begin
@@ -1282,9 +1603,9 @@ procedure TCustomAnimSprite.OnAnimEnd;
 begin
   // -- // -- //
 end;
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TAnimatedSprite }
+{$Region TAnimatedSprite }
 
 procedure TAnimatedSprite.SetAnimStart(Value: Integer);
 begin
@@ -1551,9 +1872,9 @@ begin
       FPatternCount := 1;
   end;
 end;
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TSpriteEx }
+{$Region TSpriteEx }
 
 procedure TSpriteEx.SetRed(const Value: Integer);
 begin
@@ -2090,9 +2411,9 @@ procedure TSpriteEx.OnMouseDrag;
 begin
  // -- // -- //
 end;
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TSpriteEngine }
+{$Region TSpriteEngine }
 procedure TSpriteEngine.SetGroupCount(AGroupCount: Integer);
 var
   Index: Integer;
@@ -2319,9 +2640,9 @@ procedure TSpriteEngine.GroupSelect(const Area: TRect; Add_: Boolean = false);
 begin
   GroupSelect(Area, [TSprite], Add_);
 end;
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TSprite }
+{$Region TSprite }
 procedure TSprite.Add(Sprite: TSprite);
 begin
     if FList = nil then
@@ -2633,9 +2954,9 @@ begin
     FEngine.FDeadList.Add(Self);
   end;
 end;
-{$ENDREGION}
+{$EndRegion}
 
-{$REGION TAnimations }
+{$Region TAnimations }
 function TAnimations.GetItem(Index: Integer): TFrameRec;
 begin
   if (Index >= 0) and (Index < Length(FrameData)) then Result := FrameData[Index];
@@ -2793,7 +3114,7 @@ begin
   RemoveAll();
   inherited Destroy();
 end;
-{$ENDREGION}
+{$EndRegion}
 
 end.
 
