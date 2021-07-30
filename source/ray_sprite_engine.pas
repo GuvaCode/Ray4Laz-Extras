@@ -12,8 +12,8 @@ unit ray_sprite_engine;
 interface
 
 uses
-  cmem, ray_header, Generics.Collections,
-  TypesEx, Math, Classes, SysUtils;
+  cmem, ray_header, ray_math_ex, Generics.Collections,
+   Math, Classes, SysUtils;
 
 type
   {$Region Enum}

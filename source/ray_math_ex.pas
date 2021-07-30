@@ -1,174 +1,195 @@
 unit ray_math_ex;
 
-{$mode objfpc}{$H+}
-
 interface
 
 uses
-  ray_header, math;
+  Types, Math;
 
-//---------------------------------------------------------------------------
 type
- PRayPolygon = ^TRayPolygon;
- TRayPolygon = array of TVector2;
-//--------------------------------------------------------------------------
+  TRGB32 = record
+    B, G, R, A: Byte;
+  end;
 
- // returns True if polygons overlap
-// last points of polygons must be the first one ( P1[0] = P1[N]  ; P2[0] = P2[N] )
-//---------------------------------------------------------------------------
-function OverlapPolygon(const P1, P2: TRayPolygon): Boolean;
-function RotatePolygon(const RotAng:Single; const Polygon:TRayPolygon):TRayPolygon; overload;
-procedure Rotate(const RotAng:Single; const x,y,ox,oy:Single; out Nx,Ny:Single); overload;
-function Rotate(const RotAng:Single; const Point,OPoint:TVector2):TVector2; overload;
-function Rotate(const RotAng:Single; const Polygon  : TRayPolygon; const OPoint:TVector2):TRayPolygon; overload;
-function PtInPolygon(const Pt: TVector2; const Pg: TRayPolygon):Boolean;
-function Cos256(i: Integer): Real;
-function Sin256(i: Integer): Real;
-procedure Rotate(RotAng:Single; const x,y:Single; out Nx,Ny:Single); overload;
-function Rotate(const RotAng:Single; const Point:TVector2):TVector2;  overload;
-function NotEqual(const Val1,Val2,Epsilon:Single):Boolean;  overload;
-function NotEqual(const Val1,Val2:Single):Boolean;    overload;
-procedure Centroid(const Polygon:TRayPolygon; out x,y:Single);overload;
-function Translate(const Dx,Dy:Single;   const Polygon   : TRayPolygon):TRayPolygon;     overload;
-function CenterAtLocation(const Polygon:TRayPolygon;   const x,y:Single ):TRayPolygon; overload;
+  TRGB32Array = array[0..MaxInt div SizeOf(TRGB32) - 1] of TRGB32;
 
-const Epsilon_Medium    = 1.0E-12;
-const PIDiv180  =  0.017453292519943295769236907684886;
-const Zero              = 0.0;
-  const Epsilon           = Epsilon_Medium;
+  PRGB32 = ^TRGB32;
+
+  PRGB32Array = ^TRGB32Array;
+
+  PPoint4 = ^TPoint4;
+
+  TPoint4 = array[0..3] of TPointF;
+
+  TPolygon = array of TPoint;
+
+function GetA(const Color: Longword): Byte; inline;
+
+function GetR(const Color: Longword): Byte; inline;
+
+function GetG(const Color: Longword): Byte; inline;
+
+function GetB(const Color: Longword): Byte; inline;
+
+function ARGB(const A, R, G, B: Byte): Longword; inline;
+
+function cRGB1(r, g, b: Cardinal; a: Cardinal = 255): Cardinal; inline;
+
+function AngleDiff(SrcAngle, DestAngle: Single): Single;
+
+function Cos256(i: Integer): Double;
+
+function Sin256(i: Integer): Double;
+
+function OverlapRect(const Rect1, Rect2: TRect): Boolean;
+
+function PtInPolygon(Pt: TPoint; Pg: TPolygon): Boolean;
+
+function OverlapQuadrangle(Q1, Q2: TPoint4): Boolean;
+
+function OverlapPolygon(P1, P2: TPolygon): Boolean;
+
+function RectInRect(const Rect1, Rect2: TRect): Boolean;
+
+function PointInRect(const Point: TPoint; const Rect: TRect): Boolean;
+
+function GetAngle256(const X1, Y1, X2, Y2: Integer): Integer;
+
+function Angle256(X, Y: Integer): Real;
+
 implementation
 
-procedure Rotate(RotAng:Single; const x,y:Single; out Nx,Ny:Single);
+function GetA(const Color: Longword): Byte; inline;
+begin
+  Result := Color shr 24;
+end;
+
+function GetR(const Color: Longword): Byte; inline;
+begin
+  Result := (Color shr 16) and $FF;
+end;
+
+function GetG(const Color: Longword): Byte; inline;
+begin
+  Result := (Color shr 8) and $FF;
+end;
+
+function GetB(const Color: Longword): Byte; inline;
+begin
+  Result := Color and $FF;
+end;
+
+function ARGB(const A, R, G, B: Byte): Longword; inline;
+begin
+  Result := (A shl 24) or (R shl 16) or (G shl 8) or B;
+end;
+
+
+function cRGB1(r, g, b: Cardinal; a: Cardinal = 255): Cardinal; inline;
+begin
+  Result := b or (g shl 8) or (r shl 16) or (a shl 24);
+end;
+
+function Point4(x1, y1, x2, y2, x3, y3, x4, y4: Single): TPoint4;
+begin
+  Result[0].x := x1;
+  Result[0].y := y1;
+  Result[1].x := x2;
+  Result[1].y := y2;
+  Result[2].x := x3;
+  Result[2].y := y3;
+  Result[3].x := x4;
+  Result[3].y := y4;
+end;
+
 var
-  SinVal : Single;
-  CosVal : Single;
-begin
-  RotAng := RotAng * PIDiv180;
-  SinVal := Sin(RotAng);
-  CosVal := Cos(RotAng);
-  Nx     := (x * CosVal) - (y * SinVal);
-  Ny     := (y * CosVal) + (x * SinVal);
-end;
+  CosTable256: array[0..255] of Double;
 
-function Rotate(const RotAng:Single; const Point:TVector2):TVector2;
-begin
-  Rotate(RotAng,Point.x,Point.y,Result.x,Result.y);
-end;
-
-function NotEqual(const Val1, Val2: Single): Boolean;
-begin
-  Result := NotEqual(Val1,Val2,Epsilon);
-end;
-
-function NotEqual(const Val1, Val2, Epsilon: Single): Boolean;
+procedure InitCosTable;
 var
-  Diff : Single;
+  i: Integer;
 begin
-  Diff := Val1 - Val2;
-  Assert(((-Epsilon > Diff) or (Diff > Epsilon)) = (Abs(Val1 - Val2) > Epsilon),'Error - Illogical error in equality check. (NotEqual)');
-  Result := ((-Epsilon > Diff) or (Diff > Epsilon));
-
+  for i := 0 to 255 do
+    CosTable256[i] := Cos((i / 256) * 2 * PI);
 end;
 
-
-
-procedure Centroid(const Polygon: TRayPolygon; out x, y: Single);
-var
-  i    : Integer;
-  j    : Integer;
-  asum : Single;
-  term : Single;
+function Cos256(i: Integer): Double;
 begin
-  x := Zero;
-  y := Zero;
+  Result := CosTable256[i and 255];
+end;
 
-  if Length(Polygon) < 3 then Exit;
+function Sin256(i: Integer): Double;
+begin
+  Result := CosTable256[(i + 192) and 255];
+end;
 
-  asum := Zero;
-  j    := Length(Polygon) - 1;
+function OverlapRect(const Rect1, Rect2: TRect): Boolean;
+begin
+  Result := (Rect1.Left < Rect2.Right) and (Rect1.Right > Rect2.Left) and (Rect1.Top < Rect2.Bottom) and (Rect1.Bottom > Rect2.Top);
+end;
 
-  for i := 0 to Length(Polygon) - 1 do
+function OverlapQuadrangle(Q1, Q2: TPoint4): Boolean;
+var
+  d1, d2, d3, d4: Single;
+begin
+
+  d1 := (Q1[2].X - Q1[1].X) * (Q2[0].X - Q1[0].X) + (Q1[2].Y - Q1[1].Y) * (Q2[0].Y - Q1[0].Y);
+  d2 := (Q1[3].X - Q1[2].X) * (Q2[0].X - Q1[1].X) + (Q1[3].Y - Q1[2].Y) * (Q2[0].Y - Q1[1].Y);
+  d3 := (Q1[0].X - Q1[3].X) * (Q2[0].X - Q1[2].X) + (Q1[0].Y - Q1[3].Y) * (Q2[0].Y - Q1[2].Y);
+  d4 := (Q1[1].X - Q1[0].X) * (Q2[0].X - Q1[3].X) + (Q1[1].Y - Q1[0].Y) * (Q2[0].Y - Q1[3].Y);
+  if (d1 >= 0) and (d2 >= 0) and (d3 >= 0) and (d4 >= 0) then
   begin
-    term := ((Polygon[j].x * Polygon[i].y) - (Polygon[j].y * Polygon[i].x));
-    asum := asum + term;
-    x := x + (Polygon[j].x + Polygon[i].x) * term;
-    y := y + (Polygon[j].y + Polygon[i].y) * term;
-    j := i;
+    Result := True;
+    Exit;
   end;
 
-  if NotEqual(asum,Zero) then
+  d1 := (Q1[2].X - Q1[1].X) * (Q2[1].X - Q1[0].X) + (Q1[2].Y - Q1[1].Y) * (Q2[1].Y - Q1[0].Y);
+  d2 := (Q1[3].X - Q1[2].X) * (Q2[1].X - Q1[1].X) + (Q1[3].Y - Q1[2].Y) * (Q2[1].Y - Q1[1].Y);
+  d3 := (Q1[0].X - Q1[3].X) * (Q2[1].X - Q1[2].X) + (Q1[0].Y - Q1[3].Y) * (Q2[1].Y - Q1[2].Y);
+  d4 := (Q1[1].X - Q1[0].X) * (Q2[1].X - Q1[3].X) + (Q1[1].Y - Q1[0].Y) * (Q2[1].Y - Q1[3].Y);
+  if (d1 >= 0) and (d2 >= 0) and (d3 >= 0) and (d4 >= 0) then
   begin
-    x := x / (3.0 * asum);
-    y := y / (3.0 * asum);
-  end;
-end;
-
-function Translate(const Dx, Dy: Single; const Polygon: TRayPolygon
-  ): TRayPolygon;
-var
-  i : Integer;
-begin
-  SetLength(Result,Length(Polygon));
-  for i := 0 to Length(Polygon) - 1 do
-  begin
-    Result[i].x := Polygon[i].x + Dx;
-    Result[i].y := Polygon[i].y + Dy;
+    Result := True;
+    Exit;
   end;
 
-end;
-
-function CenterAtLocation(const Polygon: TRayPolygon; const x, y: Single): TRayPolygon;
-  var
-  Cx : Single;
-  Cy : Single;
-begin
-  Centroid(Polygon,Cx,Cy);
-  Result := Translate(x - Cx,y - Cy,Polygon);
-end;
-
-function RotatePolygon(const RotAng:Single; const Polygon:TRayPolygon):TRayPolygon;
-var
-  i : Integer;
-begin
-  SetLength(Result,Length(Polygon));
-  for i := 0 to Length(Polygon) - 1 do
+  d1 := (Q1[2].X - Q1[1].X) * (Q2[2].X - Q1[0].X) + (Q1[2].Y - Q1[1].Y) * (Q2[2].Y - Q1[0].Y);
+  d2 := (Q1[3].X - Q1[2].X) * (Q2[2].X - Q1[1].X) + (Q1[3].Y - Q1[2].Y) * (Q2[2].Y - Q1[1].Y);
+  d3 := (Q1[0].X - Q1[3].X) * (Q2[2].X - Q1[2].X) + (Q1[0].Y - Q1[3].Y) * (Q2[2].Y - Q1[2].Y);
+  d4 := (Q1[1].X - Q1[0].X) * (Q2[2].X - Q1[3].X) + (Q1[1].Y - Q1[0].Y) * (Q2[2].Y - Q1[3].Y);
+  if (d1 >= 0) and (d2 >= 0) and (d3 >= 0) and (d4 >= 0) then
   begin
-    Result[i] := Rotate(RotAng,Polygon[i]);
-  end;
-end;
-
-procedure Rotate(const RotAng: Single; const x, y, ox, oy: Single; out Nx,
-  Ny: Single);
-begin
-   Rotate(RotAng,x - ox,y - oy,Nx,Ny);
-  Nx := Nx + ox;
-  Ny := Ny + oy;
-end;
-
-function Rotate(const RotAng: Single; const Point, OPoint: TVector2): TVector2;
-begin
-    Rotate(RotAng,Point.x,Point.y,OPoint.x,OPoint.y,Result.x,Result.y);
-end;
-
-function Rotate(const RotAng: Single; const Polygon: TRayPolygon;
-  const OPoint: TVector2): TRayPolygon;
-var
-  i : Integer;
-begin
-  SetLength(Result,Length(Polygon));
-  for i := 0 to Length(Polygon) - 1 do
-  begin
-    Result[i] := Rotate(RotAng,Polygon[i],OPoint);
+    Result := True;
+    Exit;
   end;
 
+  d1 := (Q1[2].X - Q1[1].X) * (Q2[3].X - Q1[0].X) + (Q1[2].Y - Q1[1].Y) * (Q2[3].Y - Q1[0].Y);
+  d2 := (Q1[3].X - Q1[2].X) * (Q2[3].X - Q1[1].X) + (Q1[3].Y - Q1[2].Y) * (Q2[3].Y - Q1[1].Y);
+  d3 := (Q1[0].X - Q1[3].X) * (Q2[3].X - Q1[2].X) + (Q1[0].Y - Q1[3].Y) * (Q2[3].Y - Q1[2].Y);
+  d4 := (Q1[1].X - Q1[0].X) * (Q2[3].X - Q1[3].X) + (Q1[1].Y - Q1[0].Y) * (Q2[3].Y - Q1[3].Y);
+  if (d1 >= 0) and (d2 >= 0) and (d3 >= 0) and (d4 >= 0) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Result := False;
 end;
 
-{ algorithm by Paul Bourke }
-function PtInPolygon(const Pt: TVector2; const Pg: TRayPolygon): Boolean;
+function PointInRect(const Point: TPoint; const Rect: TRect): Boolean;
+begin
+  Result := (Point.X >= Rect.Left) and (Point.X <= Rect.Right) and (Point.Y >= Rect.Top) and (Point.Y <= Rect.Bottom);
+end;
+
+function RectInRect(const Rect1, Rect2: TRect): Boolean;
+begin
+  Result := (Rect1.Left >= Rect2.Left) and (Rect1.Right <= Rect2.Right) and (Rect1.Top >= Rect2.Top) and (Rect1.Bottom <= Rect2.Bottom);
+end;
+
+function PtInPolygon(Pt: TPoint; Pg: TPolygon): Boolean;
 var
-  N, Counter , I : Integer;
-  XInters : Real;
-  P1, P2 : TVector2;
+  N, Counter, I: Integer;
+  XInters: Real;
+  P1, P2: TPoint;
 begin
   N := High(Pg);
   Counter := 0;
@@ -182,26 +203,21 @@ begin
           if P1.y <> P2.y then
           begin
             XInters := (Pt.y - P1.y) * (P2.x - P1.x) / (P2.y - P1.y) + P1.x;
-            if (P1.x = P2.x) or (Pt.x <= XInters) then Inc(Counter);
+            if (P1.x = P2.x) or (Pt.x <= XInters) then
+              Inc(Counter);
           end;
     P1 := P2;
   end;
   Result := (Counter mod 2 <> 0);
 end;
 
-
-
-
-
-//---------------------------------------------------------------------------
-{ NOTE: last points of polygons must be the first one ( P1[0] = P1[N]  ; P2[0] = P2[N] ) }
-function OverlapPolygon(const P1, P2: TRayPolygon): Boolean;
+function OverlapPolygon(P1, P2: TPolygon): Boolean;
 var
-  Poly1, Poly2 : TRayPolygon;
-  I, J : Integer;
-  xx , yy : Single;
-  StartP, EndP : Integer;
-  Found : Boolean;
+  Poly1, Poly2: TPolygon;
+  I, J: Integer;
+  xx, yy: Single;
+  StartP, EndP: Integer;
+  Found: Boolean;
 begin
   Found := False;
   { Find polygon with fewer points }
@@ -219,21 +235,20 @@ begin
   for I := 0 to High(Poly1) - 1 do
   begin
     { Trace new line }
-    StartP := Round(Min(Poly1[I].x, Poly1[I+1].x));
-    EndP   := Round(Max(Poly1[I].x, Poly1[I+1].x));
-
+    StartP := Round(Min(Poly1[I].x, Poly1[I + 1].x));
+    EndP := Round(Max(Poly1[I].x, Poly1[I + 1].x));
 
     if StartP = EndP then
     { A vertical line (ramp = inf) }
     begin
       xx := StartP;
-      StartP := Round(Min(Poly1[I].y, Poly1[I+1].y));
-      EndP   := Round(Max(Poly1[I].y, Poly1[I+1].y));
+      StartP := Round(Min(Poly1[I].y, Poly1[I + 1].y));
+      EndP := Round(Max(Poly1[I].y, Poly1[I + 1].y));
       { Follow a vertical line }
       for J := StartP to EndP do
       begin
         { line equation }
-        if PtInPolygon( Vector2Create(xx,J), Poly2) then
+        if PtInPolygon(Point(Round(xx), J), Poly2) then
         begin
           Found := True;
           Break;
@@ -244,16 +259,16 @@ begin
     { Follow a usual line (ramp <> inf) }
     begin
       { A Line which X is its variable i.e. Y = f(X) }
-      if Abs(Poly1[I].x -  Poly1[I+1].x) >= Abs(Poly1[I].y -  Poly1[I+1].y) then
+      if Abs(Poly1[I].x - Poly1[I + 1].x) >= Abs(Poly1[I].y - Poly1[I + 1].y) then
       begin
-        StartP := Round(Min(Poly1[I].x, Poly1[I+1].x));
-        EndP   := Round(Max(Poly1[I].x, Poly1[I+1].x));
+        StartP := Round(Min(Poly1[I].x, Poly1[I + 1].x));
+        EndP := Round(Max(Poly1[I].x, Poly1[I + 1].x));
         for J := StartP to EndP do
         begin
           xx := J;
           { line equation }
-          yy := (Poly1[I+1].y - Poly1[I].y) / (Poly1[I+1].x - Poly1[I].x) * (xx - Poly1[I].x) + Poly1[I].y;
-          if PtInPolygon(Vector2Create(xx,yy), Poly2) then
+          yy := (Poly1[I + 1].y - Poly1[I].y) / (Poly1[I + 1].x - Poly1[I].x) * (xx - Poly1[I].x) + Poly1[I].y;
+          if PtInPolygon(Point(Round(xx), Round(yy)), Poly2) then
           begin
             Found := True;
             Break;
@@ -263,14 +278,14 @@ begin
       { A Line which Y is its variable i.e. X = f(Y) }
       else
       begin
-        StartP := Round(Min(Poly1[I].y, Poly1[I+1].y));
-        EndP   := Round(Max(Poly1[I].y, Poly1[I+1].y));
+        StartP := Round(Min(Poly1[I].y, Poly1[I + 1].y));
+        EndP := Round(Max(Poly1[I].y, Poly1[I + 1].y));
         for J := StartP to EndP do
         begin
           yy := J;
           { line equation }
-          xx := (Poly1[I+1].x - Poly1[I].x) / (Poly1[I+1].y - Poly1[I].y) * (yy - Poly1[I].y) + Poly1[I].x;
-          if PtInPolygon(Vector2Create(xx,yy), Poly2) then
+          xx := (Poly1[I + 1].x - Poly1[I].x) / (Poly1[I + 1].y - Poly1[I].y) * (yy - Poly1[I].y) + Poly1[I].x;
+          if PtInPolygon(Point(Round(xx), Round(yy)), Poly2) then
           begin
             Found := True;
             Break;
@@ -278,7 +293,8 @@ begin
         end;
       end;
     end;
-    if Found then Break;
+    if Found then
+      Break;
   end;
 
   { Maybe one polygon is completely inside another }
@@ -288,34 +304,48 @@ begin
   Result := Found;
 end;
 
+function Angle256(X, Y: Integer): Real;
+begin
+  Result := (Arctan2(X, Y) *  - 40.743665431) + 128;
+end;
 
-//---------------------------------------------------------------------------
-//precalculated fixed  point  cosines for a full circle
+function GetAngle256(const X1, Y1, X2, Y2: Integer): Integer;
+const
+  PiConv256 = -128.0 / PI; // ~ 40.743665431
+begin
+  if (X2 = X1) then
+  begin
+    Result := 128;
+    if (Y1 < Y2) then
+      Result := 0;
+    Exit;
+  end;
+  Result := Round(ArcTan2(X2 - X1, Y2 - Y1) * PiConv256) and $FF;
+end;
+
+function AngleDiff(SrcAngle, DestAngle: Single): Single;
 var
-  CosTable256: array[0..255] of Double;
-
-
-procedure InitCosTable;
-var
-  i: Integer;
+  Diff: Single;
 begin
-   for i:=0 to 255 do
-    CosTable256[i] := Cos((i/256)*2*PI);
+  Diff := DestAngle - SrcAngle;
+  if (SrcAngle > DestAngle) then
+  begin
+    if (SrcAngle > 128) and (DestAngle < 128) then
+      if (Diff < 128.0) then
+        Diff := Diff + 256.0;
+    if (Diff > 128.0) then
+      Diff := Diff - 256.0;
+  end
+  else
+  begin
+    if (Diff > 128.0) then
+      Diff := Diff - 256.0;
+  end;
+  Result := Diff;
 end;
 
-function Cos256(i: Integer): Real;
-begin
-  Result := CosTable256[i and 255];
-end;
-
-function Sin256(i: Integer): Real;
-begin
-  Result := CosTable256[(i+192) and 255];
-end;
-
-
- initialization
- InitCosTable();
+initialization
+  InitCosTable;
 
 end.
 
