@@ -2302,9 +2302,9 @@ var
 begin
   Result := nil;
   if Self.FEngine <> nil then
-    Collision_GetSpriteAt(X, Y, TSpriteEx(Self));
+    Collision_GetSpriteAt(XX, YY, TSpriteEx(Self));
   for I := 0 to Count - 1 do
-    Collision_GetSpriteAt(X, Y, TSpriteEx(Items[I]));
+    Collision_GetSpriteAt(XX, YY, TSpriteEx(Items[I]));
   if Result <> nil then
   begin
     Result.Collisioned := True;
