@@ -1,8 +1,3 @@
-{
-Ray4Laz Extra. Spite Engine for RayLib.
-based on code SpriteEngine by DraculaLin,for Afterwarp Framework.
-}
-
 unit ray_sprite_engine;
 
 {$mode ObjFPC}{$H+}
@@ -10,11 +5,10 @@ unit ray_sprite_engine;
 interface
 
 uses
-  cmem, ray_header, ray_math_ex,fgl, { Generics.Collections,}
-   Math, Classes, SysUtils;
+   ray_header, ray_math_ex, fgl, Math, Classes, SysUtils;
 
 type
-  {$Region Enum}
+
   TBlendingEffect = ( Undefined = -1, Alpha, Additive, Multiplied, AddColors,
   Subtract, Custom);
 
@@ -32,7 +26,7 @@ type
 
   TTileMode = (tmHorizontal, tmVertical, tmFull);
 
-  {$EndRegion}
+
 
   TFrameRec = record
     FrameName: string;

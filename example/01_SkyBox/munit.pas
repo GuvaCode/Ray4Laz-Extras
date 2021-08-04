@@ -15,7 +15,7 @@ TGame = class(TRayApplication)
   private
   protected
   public
-      Engine3d: T3DEngine;
+      Engine3d: TModelEngine;
       Cube:   TMesh;
       skybox: TModel;
     constructor Create; override;
@@ -36,8 +36,9 @@ constructor TGame.Create;
 begin
   inherited;
   SetTargetFPS(60);
-  Engine3d:=T3DEngine.Create;
+  Engine3d:=TModelEngine.Create;
   CreateSkyBox;
+  Engine3d.EngineCameraMode:=cmFirstPerson;
 end;
 
 procedure TGame.Init;
