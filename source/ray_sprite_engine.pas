@@ -1857,7 +1857,6 @@ begin
   FPatternHeight := APatternHeight;
   if FImageLib <> nil then
   begin
-    //if FImageLib.ContainsKey(FImageName) then
       if FImageLib.IndexOf(FImageName) >=0 then
     begin
        ColCount := FImageLib[FImageName].Width div FPatternWidth;
@@ -2015,7 +2014,6 @@ var
   Source: TRectangle;
   Dest: TRectangle;
 begin
-  // if not FImageLib.ContainsKey(FImagename) then Exit;
    if FImageLib.IndexOf(FImagename)<0 then Exit;
    BeginBlendMode(Ord(FBlendingEffect));
    case MirrorMode of
