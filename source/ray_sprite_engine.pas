@@ -26,8 +26,6 @@ type
 
   TTileMode = (tmHorizontal, tmVertical, tmFull);
 
-
-
   TFrameRec = record
     FrameName: string;
     Frames: array of Cardinal;
