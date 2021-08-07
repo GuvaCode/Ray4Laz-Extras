@@ -9,12 +9,24 @@ uses
 
 type
 
+{ TAkula }
+
+TAkula = class(TAnimatedSprite)
+  public
+  speed:single;
+  procedure DoMove(const MoveCount: Single); override;
+end;
+
+
 { TGame }
 
 TGame = class(TRayApplication)
   private
     SpriteEngine: TSpriteEngine;
     AnimSprite: TAnimatedSprite;
+    Pirate:  TAnimatedSprite;
+    Akula: TAkula;
+    Crab: TAkula;
     Paluba: TSprite;
     Bg: TSprite;
     Collision: boolean;
@@ -32,6 +44,17 @@ var ImagesList: specialize TFPGMap<string, TTexture>; //For image
 
 implementation
 uses SysUtils; // for load image
+
+{ TAkula }
+
+procedure TAkula.DoMove(const MoveCount: Single);
+begin
+  inherited DoMove(MoveCount);
+    if self.MirrorMode = MirrorNormal then self.X:=self.X-speed;
+    if self.MirrorMode = MirrorX then self.X:=self.X+speed;
+    if self.X <=200 then self.MirrorMode:=MirrorX;
+    if self.X >=5400 then self.MirrorMode:=MirrorNormal;
+end;
 
 procedure TGame.LoadingTexture(FileName: string);
 var  Texture:TTexture;
@@ -57,6 +80,8 @@ begin
   LoadingTexture('data/gfx/other/akula.png');
   LoadingTexture('data/gfx/other/paluba.png');
   LoadingTexture('data/gfx/other/paluba_bg.png');
+  LoadingTexture('data/gfx/other/crab.png');
+  LoadingTexture('data/gfx/other/pirate.png');
 
   //Create sprite engine
   SpriteEngine := TSpriteEngine.Create(nil);
@@ -78,6 +103,50 @@ begin
     Z:=200;
   end;
 
+   // Create and setting Annimation sprite
+   Pirate:=TAnimatedSprite.Create(SpriteEngine);
+  with Pirate do
+  begin
+    ImageLib := ImagesList;
+    ImageName := 'pirate';
+    SetPattern(369, 360);
+    SetAnim(ImageName, 0, PatternCount-2, 20, True, True , MirrorX);
+    //centralize to window
+    X:=1000;
+    Y:=162;
+    Z:=200;
+    Width:=369;
+  end;
+
+  Akula:=TAkula.Create(SpriteEngine);
+  with Akula do
+  begin
+    ImageLib := ImagesList;
+    ImageName := 'akula';
+    SetPattern(402, 365);
+    SetAnim(ImageName, 0, PatternCount-2, 20, True, True , MirrorX);
+    //centralize to window
+    X:=800/2-AnimSprite.PatternWidth/2;
+    Y:=100;
+    Z:=190;
+    Width:=402;
+    Speed:=6;
+  end;
+
+  Crab:=TAkula.Create(SpriteEngine);
+  with Crab do
+  begin
+    ImageLib := ImagesList;
+    ImageName := 'crab';
+    SetPattern(169, 149);
+    SetAnim(ImageName, 0, PatternCount-2, 20, True, True , MirrorX);
+    //centralize to window
+    X:=800/2-AnimSprite.PatternWidth/2;
+    Y:=460;
+    Z:=210;
+    Width:=169;
+    Speed:=1;
+  end;
 
 
   Bg:= TSprite.Create(SpriteEngine);
@@ -133,7 +202,8 @@ begin
     pmBackward : AnimSprite.X:=AnimSprite.X+4;
    end;
   end;
-   if  AnimSprite.DoAnimate then
+
+  if  AnimSprite.DoAnimate then
    if AnimSprite.MirrorMode = MirrorX then
   begin
    case AnimSprite.AnimPlayMode of
@@ -147,8 +217,6 @@ begin
 
   SpriteEngine.Move(GetFrameTime); // update sprite engine on frame time
  end;
-
-
 
 procedure TGame.Render;
 begin

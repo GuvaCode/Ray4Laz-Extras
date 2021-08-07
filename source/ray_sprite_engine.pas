@@ -1861,7 +1861,7 @@ begin
     begin
        ColCount := FImageLib[FImageName].Width div FPatternWidth;
        RowCount := FImageLib[FImageName].Height div FPatternHeight;
-      FPatternCount := (ColCount * RowCount) - 1;
+       FPatternCount := (ColCount * RowCount) - 1;
     end
     else
       FPatternCount := 1;
