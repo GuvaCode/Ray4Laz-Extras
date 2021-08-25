@@ -57,7 +57,7 @@ begin
   InitWindow(800, 600, 'raylib [core] - basic window');
   SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT);
   ClearBgColor:=Black;
-  SetTargetFPS(60);
+ // SetTargetFPS(60);
   //FClearBgColor:= WHITE;
 //  inherited;
 
@@ -76,7 +76,7 @@ begin
   Texture.LoadFromFile('louse1.png',64,64);
   Texture.LoadFromFile('AnimShip1.png',64,64);
 
-  Texture.LoadFromFile('Roids0.png',64,64);
+  Texture.LoadFromFile('Roids0.png',0,0);
   //SpriteEngine.Camera:=Camera;
   ///-----///
 
@@ -93,14 +93,15 @@ begin
   Player.TextureFilter:=tfBilinear;
 
   ;
-  for i:=0 to 10 do
+  for i:=0 to 100000 do
   begin
   Simple1:=TSimple.Create(SpriteEngine,Texture);
   Simple1.X:=GetRandomValue(-600,600);
   Simple1.Y:=GetRandomValue(-600,600);
   Simple1.AngleVectorX:=32;//*Player.Scale;
   Simple1.AngleVectorY:=32;//*Player.Scale;
-  Simple1.TextureIndex:=4;
+ // Simple1.TextureIndex:=4;
+  Simple1.TextureName:='Roids0';
   Simple1.TextureFilter:=tfBilinear;
   Simple1.Speed:=GetRandomValue(30,120);
 
@@ -112,12 +113,13 @@ begin
 
 
   end;
-
-
+  //SpriteEngine.VisibleWidth:=3000;
+  //SpriteEngine.VisibleHeight:=3000;
+  SpriteEngine.CameraZoom:=1;
   SpriteEngine.CameraTarget:=Vector2Create( player.x , player.y );
   SpriteEngine.CameraOffset:=Vector2Create(800/2.0,600/2.0) ;
-
-
+  SpriteEngine.WorldX:=SpriteEngine.CameraTarget.x;
+  SpriteEngine.WorldY:=SpriteEngine.CameraTarget.y;
 end;
 
 procedure TGame.Init;

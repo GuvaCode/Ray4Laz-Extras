@@ -15,6 +15,7 @@ uses
  ray_header, lite_math_2d, Classes, SysUtils;
 
 type
+  {$Region Enum}
   TBlendingEffect = ( beUndefined = -1, beAlpha, beAdditive, beMultiplied, beAddColors,
   beSubtract, beCustom);
 
@@ -28,6 +29,7 @@ type
   TAnimPlayMode = (pmForward, pmBackward);
 
   TJumpState = (jsNone, jsJumping, jsFalling);
+  {$EndRegion}
 
   { TSpriteEngine }
   TSpriteEngine = class
@@ -36,16 +38,19 @@ type
     FCameraRotation: Single;
     FCameraTarget: TVector2;
     FCameraZoom: Single;
+    FVisibleHeight: Integer;
+    FVisibleWidth: Integer;
     FWorld: TVector3;
     FCamera: TCamera2D;
-    FList: TList;
-    FDeadList: TList;
     procedure SetCameraOffset(AValue: TVector2);
     procedure SetCameraRotation(AValue: Single);
     procedure SetCameraTarget(AValue: TVector2);
     procedure SetCameraZoom(AValue: Single);
     procedure SetWorldX(Value: Single);
     procedure SetWorldY(Value: Single);
+  protected
+    FList: TList;
+    FDeadList: TList;
   public
     constructor Create;
     destructor Destroy; override;
@@ -58,6 +63,8 @@ type
     property CameraOffset: TVector2 read FCameraOffset write SetCameraOffset;
     property CameraZoom:    Single read FCameraZoom write SetCameraZoom default 1.0;
     property CameraRotation:Single read FCameraRotation write SetCameraRotation;
+    property VisibleWidth: Integer read FVisibleWidth write FVisibleWidth;
+    property VisibleHeight: Integer read FVisibleHeight write FVisibleHeight;
     property WorldX: Single read FWorld.X write SetWorldX;
     property WorldY: Single read FWorld.Y write SetWorldY;
   end;
@@ -191,8 +198,6 @@ implementation
 
 { TSpriteEngine }
 {$Region TSpriteEngine}
-
-
 procedure TSpriteEngine.SetCameraTarget(AValue: TVector2);
 begin
   FCameraTarget:=AValue;
@@ -288,6 +293,8 @@ constructor TSpriteEngine.Create;
 begin
    FList := TList.Create;
    FDeadList := TList.Create;
+   FVisibleWidth:=GetScreenWidth;
+   FVisibleHeight:=GetScreenHeight;
    SetCameraZoom(1.0);
    SetCameraOffset(Vector2Create(0,0));
    SetCameraTarget(Vector2Create(0,0));
@@ -321,12 +328,12 @@ begin
 
   Inc(Count);
 
-  TextureName[Count - 1] := FileName;
+  TextureName[Count - 1] := ChangeFileExt(ExtractFileName(FileName), '');
   Pattern[Count - 1].Width := Width;
   Pattern[Count - 1].Height := Height;
 
   Texture[Count - 1] := LoadTexture(Pchar(FileName));
-  //tex_SetFrameSize(Texture[Count - 1], Width, Height);
+
   Result := True;
 end;
 
@@ -368,7 +375,6 @@ end;
 
 procedure TSprite.SetAngleVector(AValue: TVector2);
 begin
- //.. if FAngleVector=AValue then Exit;
   FAngleVector:=AValue;
 end;
 
@@ -411,12 +417,8 @@ begin
     if ansilowercase(FTextureName) = ansilowercase(FTexture.TextureName[i]) then
     begin
       TextureIndex := i;
-      //Pattern.Right := FTexture.Pattern[i].Height;
-      //Pattern.Bottom := FTexture.Pattern[i].Width;
-
       Pattern.height := FTexture.Pattern[i].Height;
       Pattern.width := FTexture.Pattern[i].Width;
-
       Exit;
     end;
   end;
@@ -440,8 +442,14 @@ begin
 
    if Assigned(FEngine) then
     begin //toDo visible Area;
-
+     if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (FTexture.Texture[TextureIndex].width + FEngine.Camera.offset.X) ) and
+        (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (FTexture.Texture[TextureIndex].height + FEngine.Camera.offset.Y) ) and
+        (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
+        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y))
+   then
+   begin
     BeginBlendMode(Ord(FBlendingEffect));
+
 
    case MirrorMode of
     mmNormal:RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
@@ -461,7 +469,7 @@ begin
      FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
 
      EndBlendMode;
-
+  end;
   end;
 end;
 
@@ -539,6 +547,8 @@ begin
   Y := Y - m_Cos(Round(Angle)) * Speed;
 end;
 
+
+
 {$EndRegion}
 
 { TAnimatedSprite }
@@ -593,13 +603,20 @@ procedure TAnimatedSprite.Draw;
 var
   Dest: TRectangle;
   frameRec:TRectangle;
+  Zoom:Integer;
 begin
-
+  if FEngine.CameraZoom <1 then Zoom:=6 else Zoom:=0; ;
   if not TextureIndex >= 0 then Exit;
 
    if Assigned(FEngine) then
     begin //toDo visible Area;
 
+     if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (PatternWidth + FEngine.Camera.offset.X) ) and
+        (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (PatternHeight + FEngine.Camera.offset.Y) ) and
+        (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
+        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y))
+  then
+   begin
     BeginBlendMode(Ord(FBlendingEffect));
 
     framerec:= SetPatternRec(FTexture.Texture[TextureIndex], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
@@ -627,7 +644,7 @@ begin
 
 
       EndBlendMode;
-
+    end;
     end;
 end;
 
