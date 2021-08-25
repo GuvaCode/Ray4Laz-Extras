@@ -23,31 +23,41 @@ type
 
   TTextureWrap = (twRepeat=0, twClamp, twMirrorRepeat, twMirrorClamp);
 
-  TMirrorMode = (MrmNormal, MrmX, MrmY, MrmXY);
+  TMirrorMode = (MmNormal, MmX, MmY, MmXY);
+
+  TAnimPlayMode = (pmForward, pmBackward);
 
   TJumpState = (jsNone, jsJumping, jsFalling);
 
   { TSpriteEngine }
   TSpriteEngine = class
   private
+    FCameraOffset: TVector2;
+    FCameraRotation: Single;
+    FCameraTarget: TVector2;
+    FCameraZoom: Single;
     FWorld: TVector3;
     FCamera: TCamera2D;
-    procedure SetCamera(Value: TCamera2D);
+    FList: TList;
+    FDeadList: TList;
+    procedure SetCameraOffset(AValue: TVector2);
+    procedure SetCameraRotation(AValue: Single);
+    procedure SetCameraTarget(AValue: TVector2);
+    procedure SetCameraZoom(AValue: Single);
     procedure SetWorldX(Value: Single);
     procedure SetWorldY(Value: Single);
   public
-    FList: TList;
-    FDeadList: TList;
-
+    constructor Create;
+    destructor Destroy; override;
     procedure Draw;
     procedure ClearDeadSprites;
     procedure Move(MoveCount: Double);
     procedure SetZOrder;
-
-    constructor Create;
-    destructor Destroy; override;
-
-    property Camera: TCamera2D read FCamera write SetCamera;
+    property Camera: TCamera2D read FCamera;
+    property CameraTarget: TVector2 read FCameraTarget write SetCameraTarget;
+    property CameraOffset: TVector2 read FCameraOffset write SetCameraOffset;
+    property CameraZoom:    Single read FCameraZoom write SetCameraZoom default 1.0;
+    property CameraRotation:Single read FCameraRotation write SetCameraRotation;
     property WorldX: Single read FWorld.X write SetWorldX;
     property WorldY: Single read FWorld.Y write SetWorldY;
   end;
@@ -103,9 +113,7 @@ type
     IsSpriteDead: Boolean;
     ScaleX, ScaleY: Single;
     Visible: Boolean;
-    VisibleArea: TRect;
-    Pattern: TRect;
-
+    Pattern: TRectangle;
     procedure Draw;
     procedure Move(MoveCount: Double); virtual;
     procedure Dead;
@@ -120,62 +128,62 @@ type
 
     property TextureIndex: Integer read FTextureIndex write SetTextureIndex;
     property TextureName: string read FTextureName write SetTextureName;
-
     property X: Single read FVector.X write FVector.X;
     property Y: Single read FVector.Y write FVector.Y;
     property Z: Single read FZ write SetOrder;
     property Angle: Single read FAngle write FAngle;
     property Scale: Single read FScale write SetScale;
-
     property Red: Integer read FRed write SetRed default 255;
     property Green: Integer read FGreen write SetGreen default 255;
     property Blue: Integer read FBlue write SetBlue default 255;
     property Alpha: Integer read FAlpha write SetAlpha default 255;
-
     property BlendingEffect: TBlendingEffect read FBlendingEffect write FBlendingEffect;
     property TextureFilter: TTextureFilter read FTextureFilter write SetTexture_Filter;
     property TextureWrap: TTextureWrap read FTextureWrap write SetTexture_Wrap;
     property MirrorMode: TMirrorMode read FMirrorMode write FMirrorMode;
-
-
     property AngleVectorX: Single read FAngleVector.x write FAngleVector.x;
     property AngleVectorY: Single read FAngleVector.y write FAngleVector.y;
   end;
 
   { TAnimatedSprite }
   TAnimatedSprite = class(TSprite)
+  private
+    FAnimCount: Integer;
+    FAnimEnded: Boolean;
+    FAnimLooped: Boolean;
+    FAnimPlayMode: TAnimPlayMode;
+    FAnimPos: Single;
+    FAnimSpeed: Single;
+    FAnimStart: Integer;
+    FDoAnimate: Boolean;
+    FPatternCount: Integer;
+    procedure SetAnimStart(AValue: Integer);
+    function SetPatternRec(ATexture: TTexture; PatternIndex, PatternWidth, PatternHeight: Integer): TRectangle;
   protected
-    FDoAnimated: Boolean;
-    FSplited: array of TRect;
     FPatternIndex: Integer;
     FPatternHeight: Integer;
     FPatternWidth: Integer;
     procedure SetPatternHeight(Value: Integer);
     procedure SetPatternWidth(Value: Integer);
   public
-    AnimLooped: Boolean;
-    AnimStart: Integer;
-    AnimCount: Integer;
-    AnimSpeed: Single;
-    AnimPos: Single;
-
-    PatternCount: Integer;
-    PatternDeltaX: Integer;
-    PatternDeltaY: Integer;
-
-{    procedure Split;
-    procedure Split2;
-    procedure Split3;   }
-
     procedure Draw;
     procedure Move(MoveCount: Double); override;
-    procedure DoAnim(Looped: Boolean; Start: Integer; Count: Integer; Speed: Single);
-
+    procedure DoAnim(Looped: Boolean; Start: Integer; Count: Integer; Speed: Single; PlayMode: TAnimPlayMode = pmForward);
+    procedure SetPattern(APatternWidth, APatternHeight: Integer);
     constructor Create(Engine: TSpriteEngine; Texture: TLiteTexture); override;
     destructor Destroy; override;
 
     property PatternHeight: Integer read FPatternHeight write SetPatternHeight;
     property PatternWidth: Integer read FPatternWidth write SetPatternWidth;
+    property PatternCount: Integer read FPatternCount write FPatternCount;
+
+    property AnimPos    : Single read FAnimPos write FAnimPos;
+    property AnimStart  : Integer read FAnimStart write SetAnimStart;
+    property AnimCount  : Integer read FAnimCount write FAnimCount;
+    property AnimSpeed  : Single read FAnimSpeed write FAnimSpeed;
+    property AnimLooped : Boolean read FAnimLooped write FAnimLooped;
+    property DoAnimate  : Boolean read FDoAnimate write FDoAnimate;
+    property AnimPlayMode: TAnimPlayMode read FAnimPlayMode write FAnimPlayMode;
   end;
 
 
@@ -183,9 +191,30 @@ implementation
 
 { TSpriteEngine }
 {$Region TSpriteEngine}
-procedure TSpriteEngine.SetCamera(Value: TCamera2D);
+
+
+procedure TSpriteEngine.SetCameraTarget(AValue: TVector2);
 begin
-  FCamera := Value;
+  FCameraTarget:=AValue;
+  FCamera.target:=FCameraTarget;
+end;
+
+procedure TSpriteEngine.SetCameraZoom(AValue: Single);
+begin
+  FCameraZoom:=AValue;
+  FCamera.zoom:=FCameraZoom;
+end;
+
+procedure TSpriteEngine.SetCameraOffset(AValue: TVector2);
+begin
+  FCameraOffset:=AValue;
+  FCamera.offset:=FCameraOffset;
+end;
+
+procedure TSpriteEngine.SetCameraRotation(AValue: Single);
+begin
+  FCameraRotation:=AValue;
+  FCamera.rotation:=FCameraRotation;
 end;
 
 procedure TSpriteEngine.SetWorldX(Value: Single);
@@ -259,6 +288,10 @@ constructor TSpriteEngine.Create;
 begin
    FList := TList.Create;
    FDeadList := TList.Create;
+   SetCameraZoom(1.0);
+   SetCameraOffset(Vector2Create(0,0));
+   SetCameraTarget(Vector2Create(0,0));
+   SetCameraRotation(0.0);
 end;
 
 destructor TSpriteEngine.Destroy;
@@ -378,8 +411,12 @@ begin
     if ansilowercase(FTextureName) = ansilowercase(FTexture.TextureName[i]) then
     begin
       TextureIndex := i;
-      Pattern.Right := FTexture.Pattern[i].Height;
-      Pattern.Bottom := FTexture.Pattern[i].Width;
+      //Pattern.Right := FTexture.Pattern[i].Height;
+      //Pattern.Bottom := FTexture.Pattern[i].Width;
+
+      Pattern.height := FTexture.Pattern[i].Height;
+      Pattern.width := FTexture.Pattern[i].Width;
+
       Exit;
     end;
   end;
@@ -389,15 +426,14 @@ end;
 procedure TSprite.SetTextureIndex(Value: Integer);
 begin
   FTextureIndex := Value;
-  Pattern.Right := FTexture.Pattern[FTextureIndex].Height;
-  Pattern.Bottom := FTexture.Pattern[FTextureIndex].Width;
+  Pattern.height := FTexture.Pattern[FTextureIndex].Height;
+  Pattern.width := FTexture.Pattern[FTextureIndex].Width;
 end;
 
 procedure TSprite.Draw;
 var
   Source: TRectangle;
   Dest: TRectangle;
-
 begin
 
   if not TextureIndex >= 0 then Exit;
@@ -405,26 +441,14 @@ begin
    if Assigned(FEngine) then
     begin //toDo visible Area;
 
-    if  (X >  (FEngine.WorldX) + VisibleArea.Left) and
-    (X + Pattern.Right < (FEngine.WorldX) + VisibleArea.Right + 300) and
-    (Y > (FEngine.WorldY) + VisibleArea.Top) and
-    (Y + Pattern.Bottom < (FEngine.WorldY) + VisibleArea.Bottom + 300) then
-    begin
-
-
-   // SetTextureWrap(FTexture.Texture[TextureIndex],TEXTURE_WRAP_MIRROR_REPEAT);
- //   SetTextureFilter(FTexture.Texture[TextureIndex],TEXTURE_FILTER_BILINEAR);
-
     BeginBlendMode(Ord(FBlendingEffect));
 
-
    case MirrorMode of
-    mrmNormal:RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
-    mrmX:     RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
-    mrmY:     RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
-    mrmXY:    RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
+    mmNormal:RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
+    mmX:     RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
+    mmY:     RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
+    mmXY:    RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
    end;
-
 
      RectangleSet(@Dest, FEngine.FCamera.target.x + X,    //X + FWorldX + Offset.X - FEngine.FWorldX,
                          FEngine.FCamera.target.y + Y,    //FY + FWorldY + Offset.Y - FEngine.FWorldY,
@@ -432,15 +456,13 @@ begin
                          FTexture.Texture[TextureIndex].height * ScaleY);
 
 
-
      DrawTexturePro(FTexture.Texture[TextureIndex],
-     Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
-     {FAngleVector,} FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha)); //todo
+     Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
+     FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
 
      EndBlendMode;
-    end;
 
-    end;
+  end;
 end;
 
 procedure TSprite.Move(MoveCount: Double);
@@ -479,8 +501,8 @@ begin
   FEngine.FList.Add(Self);
   FTexture := Texture;
 
-  Pattern.Left := 0;
-  Pattern.Top := 0;
+  Pattern.width := 0;
+  Pattern.height := 0;
 
   Blue := 255;
   Green := 255;
@@ -491,14 +513,13 @@ begin
   ScaleY := 1.0;
 
   Visible := True; // Displaymode Width/Height
-  VisibleArea := Rect(- 600 , - 600, GetScreenWidth , GetScreenHeight);
 
-  MirrorMode:=mrmNormal;
+  MirrorMode:=mmNormal;
 
   FAngleVector:=Vector2Create(0,0);
   FTextureFilter:=tfBilinear;
   FTextureWrap:= twClamp;
-//  TTextureWrap = (twRepeat=0, twClamp, twMirrorRepeat, twMirrorClamp);
+
 end;
 
 destructor TSprite.Destroy;
@@ -522,36 +543,155 @@ end;
 
 { TAnimatedSprite }
 {$Region TAnimatedSprite}
+
+procedure TAnimatedSprite.SetAnimStart(AValue: Integer);
+begin
+  if FAnimStart=AValue then Exit;
+  FAnimStart:=AValue;
+end;
+
+function TAnimatedSprite.SetPatternRec(ATexture: TTexture; PatternIndex,
+  PatternWidth, PatternHeight: Integer): TRectangle;
+var FTexWidth, FTexHeight, ColCount, RowCount, FFPatternIndex:integer;
+    Left,Right,Top,Bottom,FFWidth,FFHeight,XX1,YY1,XX2,YY2:integer;
+begin
+  FTexWidth := ATexture.Width;
+   FTexHeight := ATexture.Height;
+   ColCount := FTexWidth div PatternWidth;
+   RowCount := FTexHeight div PatternHeight;
+   FFPatternIndex := PatternIndex;
+  if FFPatternIndex < 0 then
+    FFPatternIndex := 0;
+  if FFPatternIndex >= RowCount * ColCount then
+    FFPatternIndex := RowCount * ColCount - 1;
+   Left := (FFPatternIndex mod ColCount) * PatternWidth;
+   Right := Left + PatternWidth;
+   Top := (FFPatternIndex div ColCount) * PatternHeight;
+   Bottom := Top + PatternHeight;
+   FFWidth := Right - Left;
+   FFHeight := Bottom - Top;
+   XX1 := Left;
+   YY1 := Top;
+   XX2 := (Left + FFWidth);
+   YY2 := (Top + FFHeight);
+   Result:=RectangleCreate(Round(XX1), Round(YY1), Round(XX2), Round(YY2));
+end;
+
 procedure TAnimatedSprite.SetPatternHeight(Value: Integer);
 begin
-
+  FPatternHeight := Value;
+  Pattern.height := Value;
 end;
 
 procedure TAnimatedSprite.SetPatternWidth(Value: Integer);
 begin
-
+  FPatternWidth := Value;
+  Pattern.width := Value;
 end;
 
 procedure TAnimatedSprite.Draw;
+var
+  Dest: TRectangle;
+  frameRec:TRectangle;
 begin
 
+  if not TextureIndex >= 0 then Exit;
+
+   if Assigned(FEngine) then
+    begin //toDo visible Area;
+
+    BeginBlendMode(Ord(FBlendingEffect));
+
+    framerec:= SetPatternRec(FTexture.Texture[TextureIndex], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
+    framerec.width:=FPatternWidth;
+    framerec.height:=FPatternHeight;
+
+
+    case MirrorMode of
+        mmNormal:RectangleSet(@frameRec, framerec.x, framerec.y, Self.PatternWidth, Self.PatternHeight);
+        mmX:     RectangleSet(@frameRec, framerec.x, framerec.y,-Self.PatternWidth, Self.PatternHeight);
+        mmY:     RectangleSet(@frameRec, framerec.x, framerec.y, Self.PatternWidth,-Self.PatternHeight);
+        mmXY:    RectangleSet(@frameRec, framerec.x, framerec.y, -Self.PatternWidth,-Self.PatternHeight);
+       end;
+
+
+      RectangleSet(@Dest, FEngine.FCamera.target.x + X,
+                          FEngine.FCamera.target.y + Y,
+                          Self.PatternWidth  * ScaleX,
+                          Self.PatternHeight * ScaleY);
+
+
+       DrawTexturePro(FTexture.Texture[TextureIndex],
+       frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
+       FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
+
+
+      EndBlendMode;
+
+    end;
 end;
 
 procedure TAnimatedSprite.Move(MoveCount: Double);
 begin
-  inherited Move(MoveCount);
+  if not FDoAnimate then Exit;
+
+  case FAnimPlayMode of
+
+   pmForward:
+    begin
+      FAnimPos := FAnimPos + FAnimSpeed * MoveCount;
+      if (FAnimPos > FAnimStart + FAnimCount ) then
+       begin
+        if (Trunc(FAnimPos)) = FAnimStart + FAnimCount then FAnimEnded := True;
+        if FAnimLooped then FAnimPos := FAnimStart
+         else
+          begin
+            FAnimPos := FAnimStart + FAnimCount-1 ;
+            FDoAnimate := False;
+          end;
+       end;
+    end;
+
+   pmBackward:
+    begin
+     FAnimPos := FAnimPos - FAnimSpeed * MoveCount;
+     if (FAnimPos < FAnimStart) then
+     if FAnimLooped then FAnimPos := FAnimStart + FAnimCount - 1
+     else
+      begin
+        FAnimPos := FAnimStart;
+        FDoAnimate := False;
+      end;
+    end;
+
+   end;
+    FPatternIndex := Trunc(FAnimPos);
 end;
 
 procedure TAnimatedSprite.DoAnim(Looped: Boolean; Start: Integer;
-  Count: Integer; Speed: Single);
+  Count: Integer; Speed: Single; PlayMode: TAnimPlayMode);
 begin
-
+  FAnimStart  := Start;
+  FAnimCount  := Count;
+  FAnimSpeed  := Speed;
+  FAnimLooped := Looped;
+  FAnimPlayMode:= PlayMode;
 end;
 
-constructor TAnimatedSprite.Create(Engine: TSpriteEngine; Texture: TLiteTexture
-  );
+procedure TAnimatedSprite.SetPattern(APatternWidth, APatternHeight: Integer);
+var  ColCount,RowCount: integer;
+begin
+  FPatternWidth := APatternWidth;
+  FPatternHeight := APatternHeight;
+  ColCount := FTexture.Texture[TextureIndex].width div FPatternWidth;
+  RowCount := FTexture.Texture[TextureIndex].height div FPatternHeight;
+  PatternCount := (ColCount * RowCount) - 1;
+end;
+
+constructor TAnimatedSprite.Create(Engine: TSpriteEngine; Texture: TLiteTexture);
 begin
   inherited Create(Engine, Texture);
+  FAnimated := True;
 end;
 
 destructor TAnimatedSprite.Destroy;

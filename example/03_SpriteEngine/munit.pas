@@ -15,6 +15,7 @@ TGame = class(TRayApplication)
   private
   protected
   public
+    Camera:TCamera2d;
     constructor Create; override;
     procedure Init; override;
     procedure Update; override;
@@ -191,6 +192,12 @@ begin
   end;
 
 
+  Camera.target:=Vector2Create( PlayerShip.x , PlayerShip.y );
+  Camera.offset:=Vector2Create(800/2.0,600/2.0) ;
+  Camera.rotation:=0.0;
+  Camera.zoom:=1.0;
+
+
     LoadMap('Level1.map');
   CreateMap(500, 500);
 
@@ -204,6 +211,8 @@ end;
 procedure TGame.Update;
 begin
 
+    PlayerShip.LookAt(GetMouseX + Round(Camera.target.x - Camera.offset.x) ,
+                GetMouseY + Round( Camera.target.y - Camera.offset.y));
 
   if IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) then
   begin
@@ -268,7 +277,14 @@ end;
 
 procedure TGame.Render;
 begin
-   SpriteEngine.Draw;
+
+
+
+  BeginMode2D(Camera);
+
+  SpriteEngine.Draw;
+
+  EndMode2D;
 
   DrawText(PChar(IntToStr(GetFPS)+' FPS'),10,10,10,BLACK);
   DrawText(PChar(IntToStr(GetMouseX)+' ------ '+ IntToStr(GetMouseY)),50,10,10,Red);

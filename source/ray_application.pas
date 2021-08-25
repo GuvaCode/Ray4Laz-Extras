@@ -51,7 +51,7 @@ constructor TRayApplication.Create;
 begin
 
 
-  //init;
+
 end;
 
 destructor TRayApplication.Destroy;

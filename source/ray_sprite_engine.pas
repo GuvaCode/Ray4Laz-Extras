@@ -1822,11 +1822,13 @@ begin
   FMirrorMode := AniMirrorMode;
   FDoAnimate := DoAnimate;
   FAnimPlayMode := PlayMode;
+
   if (FPatternIndex < FAnimStart) or (FPatternIndex >= FAnimCount + FAnimStart) then
   begin
     FPatternIndex := FAnimStart mod FAnimCount;
     FAnimPos := FAnimStart;
   end;
+
 end;
 
 procedure TAnimatedSprite.SetAnim(AniImageName: string; AniStart,
@@ -1868,6 +1870,7 @@ var  ColCount,RowCount: integer;
 begin
   FPatternWidth := APatternWidth;
   FPatternHeight := APatternHeight;
+
   if FImageLib <> nil then
   begin
       if FImageLib.IndexOf(FImageName) >=0 then
@@ -1879,6 +1882,7 @@ begin
     else
       FPatternCount := 1;
   end;
+
 end;
 {$EndRegion}
 
