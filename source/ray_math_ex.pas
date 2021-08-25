@@ -1,5 +1,5 @@
 unit ray_math_ex;
-
+{$mode Delphi}{$H+}
 interface
 
 uses
@@ -55,6 +55,24 @@ function PointInRect(const Point: TPoint; const Rect: TRect): Boolean;
 function GetAngle256(const X1, Y1, X2, Y2: Integer): Integer;
 
 function Angle256(X, Y: Integer): Real;
+
+
+procedure InitCosSinTables;
+function  m_Cos( Angle : Integer ) : Single;
+function  m_Sin( Angle : Integer ) : Single;
+function  m_Distance( x1, y1, x2, y2 : Single ) : Single;
+function  m_FDistance( x1, y1, x2, y2 : Single ) : Single;
+function  m_Angle( x1, y1, x2, y2 : Single ) : Single;
+function  m_Orientation( x, y, x1, y1, x2, y2 : Single ) : Integer;
+
+var
+  cosTable : array[ 0..360 ] of Single;
+  sinTable : array[ 0..360 ] of Single;
+
+CONST
+    ORIENTATION_LEFT  = -1;
+  ORIENTATION_RIGHT = 1;
+  ORIENTATION_ZERO  = 0;
 
 implementation
 
@@ -309,6 +327,102 @@ begin
   Result := (Arctan2(X, Y) *  - 40.743665431) + 128;
 end;
 
+procedure InitCosSinTables;
+   var
+    i         : Integer;
+    rad_angle : Single;
+begin
+  for i := 0 to 360 do
+    begin
+      rad_angle := i * ( pi / 180 );
+      cosTable[ i ] := cos( rad_angle );
+      sinTable[ i ] := sin( rad_angle );
+    end;
+end;
+
+function m_Cos(Angle: Integer): Single;
+begin
+   if Angle > 360 Then
+    DEC( Angle, ( Angle div 360 ) * 360 )
+  else
+    if Angle < 0 Then
+      INC( Angle, ( abs( Angle ) div 360 + 1 ) * 360 );
+  Result := cosTable[ Angle ];
+end;
+
+function m_Sin(Angle: Integer): Single;
+begin
+  if Angle > 360 Then
+    DEC( Angle, ( Angle div 360 ) * 360 )
+  else
+    if Angle < 0 Then
+      INC( Angle, ( abs( Angle ) div 360 + 1 ) * 360 );
+  Result := sinTable[ Angle ];
+end;
+
+function m_Distance(x1, y1, x2, y2: Single): Single;
+begin
+  Result := sqrt( sqr( x1 - x2 ) + sqr( y1 - y2 ) );
+end;
+
+function m_FDistance(x1, y1, x2, y2: Single): Single;
+begin
+  Result := sqr( x1 - x2 ) + sqr( y1 - y2 );
+end;
+
+function m_Angle(x1, y1, x2, y2: Single): Single;
+var
+  dx, dy : Single;
+begin
+dx := ( X1 - X2 );
+dy := ( Y1 - Y2 );
+
+if dx = 0 Then
+  begin
+    if dy > 0 Then
+      Result := 90
+    else
+      Result := 270;
+    exit;
+  end;
+
+if dy = 0 Then
+  begin
+    if dx > 0 Then
+      Result := 0
+    else
+      Result := 180;
+    exit;
+  end;
+
+if ( dx < 0 ) and ( dy > 0 ) Then
+  Result := 180 - ArcTan2( dx, dy )
+else
+  if ( dx < 0 ) and ( dy < 0 ) Then
+    Result := 180 + ArcTan2( dx, dy )
+  else
+    if ( dx > 0 ) and ( dy < 0 ) Then
+      Result := 360 - ArcTan2( dx, dy )
+    else
+      Result := ArcTan2( dx, dy )
+end;
+
+function m_Orientation(x, y, x1, y1, x2, y2: Single): Integer;
+var
+  orientation : Single;
+begin
+orientation := ( x2 - x1 ) * ( y - y1 ) - ( x - x1 ) * ( y2 - y1 );
+
+if orientation > 0 Then
+  Result := ORIENTATION_RIGHT
+else
+  if orientation < 0 Then
+    Result := ORIENTATION_LEFT
+  else
+    Result := ORIENTATION_ZERO;
+
+end;
+
 function GetAngle256(const X1, Y1, X2, Y2: Integer): Integer;
 const
   PiConv256 = -128.0 / PI; // ~ 40.743665431
@@ -346,6 +460,6 @@ end;
 
 initialization
   InitCosTable;
-
+  InitCosSinTables();
 end.
 

@@ -4,14 +4,16 @@
     <Version Value="12"/>
     <General>
       <Flags>
-        <CompatibilityMode Value="True"/>
+        <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
+        <MainUnitHasScaledStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="myGame"/>
+      <Title Value="SpaceGame"/>
       <ResourceType Value="res"/>
     </General>
-    <BuildModes Count="1">
-      <Item1 Name="Default" Default="True"/>
+    <BuildModes>
+      <Item Name="Default" Default="True"/>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
@@ -20,34 +22,39 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
-    <RequiredPackages Count="2">
-      <Item1>
+    <RequiredPackages>
+      <Item>
         <PackageName Value="ray4laz_extra"/>
-      </Item1>
-      <Item2>
+      </Item>
+      <Item>
         <PackageName Value="ray4laz"/>
-      </Item2>
+      </Item>
     </RequiredPackages>
-    <Units Count="3">
-      <Unit0>
-        <Filename Value="myGame.lpr"/>
+    <Units>
+      <Unit>
+        <Filename Value="SpaceGame.lpr"/>
         <IsPartOfProject Value="True"/>
-      </Unit0>
-      <Unit1>
-        <Filename Value="mnit.pas"/>
+      </Unit>
+      <Unit>
+        <Filename Value="munit.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="ray_spriteengine.pas"/>
+        <UnitName Value="mUnit"/>
+      </Unit>
+      <Unit>
+        <Filename Value="gameclasses.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="ray_SpriteEngine"/>
-      </Unit2>
+        <UnitName Value="GameClasses"/>
+      </Unit>
+      <Unit>
+        <Filename Value="gametypes.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="../../binary/SpriteEngine1"/>
+      <Filename Value="../../binary/SpaceGame"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
@@ -60,16 +67,16 @@
     </Linking>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="3">
-      <Item1>
+    <Exceptions>
+      <Item>
         <Name Value="EAbort"/>
-      </Item1>
-      <Item2>
+      </Item>
+      <Item>
         <Name Value="ECodetoolError"/>
-      </Item2>
-      <Item3>
+      </Item>
+      <Item>
         <Name Value="EFOpenError"/>
-      </Item3>
+      </Item>
     </Exceptions>
   </Debugging>
 </CONFIG>

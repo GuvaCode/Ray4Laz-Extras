@@ -69,6 +69,7 @@ type
     FScaleEx: TVector3;
     FPosition: TVector3;
     FAnims : PModelAnimation;
+    FAnimCont: integer;
     procedure SetScale(AValue: Single);
   protected
     FEngine: TModelEngine;
@@ -107,6 +108,7 @@ type
     property Color: TColor read FColor write FColor;
     property DrawMode: TModelDrawMode read FDrawMode write FDrawMode;
     property Anims: PModelAnimation read FAnims write FAnims;
+    property Model: TModel read FModel write FModel;
   end;
 
 
@@ -116,7 +118,7 @@ implementation
 
 procedure T3dModel.SetScale(AValue: Single);
 begin
-  if FScale=AValue then Exit;
+//  if FScale=AValue then Exit;
   FScale:=AValue;
   Vector3Set(@FScaleEx,FScale,FScale,FScale);
 end;
@@ -162,7 +164,9 @@ end;
 
 procedure T3dModel.Load3dModelAnimations(FileName: String; AnimCoint: integer);
 begin
-   FAnims:=LoadModelAnimations(PChar(FileName),AnimCoint);
+   FModel:=LoadModel(PChar(FileName));
+   FAnimCont:=0;
+   FAnims:=LoadModelAnimations(PChar(FileName),&FAnimCont);
 end;
 
 procedure T3dModel.Update3dModelAnimations(Frame: longint);

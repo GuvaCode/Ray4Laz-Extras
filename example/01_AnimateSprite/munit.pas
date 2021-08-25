@@ -110,9 +110,9 @@ begin
     ImageLib := ImagesList;
     ImageName := 'pirate';
     SetPattern(369, 360);
-    SetAnim(ImageName, 0, PatternCount-2, 20, True, True , MirrorX);
+    SetAnim(ImageName, 0, PatternCount-2, 20, True, True , MirrorNormal);
     //centralize to window
-    X:=1000;
+    X:=0;
     Y:=162;
     Z:=200;
     Width:=369;

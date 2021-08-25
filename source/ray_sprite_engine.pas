@@ -1442,6 +1442,10 @@ begin
       FSpeed := FMaxSpeed;
     VelocityX := Cos256(FDirection + 192) * Speed;
     VelocityY := Sin256(FDirection + 192) * Speed;
+
+   // VelocityX := m_Sin(Round(Angle)-360) * Speed;
+   // VelocityY := m_Cos(Round(Angle)-180) * Speed;
+
   end;
 end;
 
@@ -1454,6 +1458,9 @@ begin
       FSpeed := FMinSpeed;
     VelocityX := Cos256(FDirection + 192) * Speed;
     VelocityY := Sin256(FDirection + 192) * Speed;
+//    VelocityX := m_Sin(Round(Angle)-360) * Speed;
+ //   VelocityY := m_Cos(Round(Angle)-180) * Speed;
+
   end;
 end;
 
@@ -1658,6 +1665,7 @@ begin
   FAnimPlayMode := pmForward;
   FDoFlag1 := False;
   FDoFlag2 := False;
+
 end;
 
 procedure TAnimatedSprite.Assign(const Value: TSprite);
@@ -1675,10 +1683,14 @@ end;
 
 procedure TAnimatedSprite.DoDraw;
 var frameRec, Dest: TRectangle;
-
+    AngleVector: TVector2;
 begin
    // if not FImageLib.ContainsKey(FImagename) then Exit;
   //  if not FImageLib.Find(FImageName);
+
+  if Self.DoCenter then AngleVector:= Vector2Create(Self.PatternWidth/2,Self.PatternHeight/2)
+    else AngleVector:= Vector2Create(0,0);
+
     if FImageLib.IndexOf(FImageName) <0 then Exit;
 
     BeginBlendMode(Ord(FBlendingEffect));
@@ -1695,21 +1707,23 @@ begin
    end;
 
     case TruncMove of
-   true: begin
+
+      true: begin
            RectangleSet(@Dest, Round(FX + FWorldX + Offset.X - FEngine.FWorldX),
                        Round(FY + FWorldY + Offset.Y - FEngine.FWorldY),
                        Self.PatternWidth  * ScaleX,
                        Self.PatternHeight * ScaleY);
-             DrawTexturePro(FImageLib[FImageName], frameRec, Dest, Vector2Create(0,0), FAngle,
+             DrawTexturePro(FImageLib[FImageName], frameRec, Dest, AngleVector, Round(FAngle),
              ColorCreate(FRed,FGreen,FBlue,FAlpha));
          end;
+
    false: begin
             RectangleSet(@Dest, FX + FWorldX + Offset.X - FEngine.FWorldX,
                                 FY + FWorldY + Offset.Y - FEngine.FWorldY,
                        Self.PatternWidth  * ScaleX,
                        Self.PatternHeight * ScaleY);
-          DrawTexturePro(FImageLib[FImageName], frameRec, Dest, Vector2Create(0,0), FAngle,
-             ColorCreate(FRed,FGreen,FBlue,FAlpha));
+          DrawTexturePro(FImageLib[FImageName], frameRec, Dest, AngleVector, FAngle,
+          ColorCreate(FRed,FGreen,FBlue,FAlpha));
           end;
    end;
 
@@ -1785,6 +1799,7 @@ begin
         FPatternIndex := Round(FAnimPos);
       end;
   end;
+
 end;
 
 function TAnimatedSprite.AnimEnded: Boolean;
@@ -1899,7 +1914,7 @@ end;
 
 procedure TSpriteEx.SetAngle360(Value: Integer);
 begin
-  if FAngle360 <> Value then FAngle := DegToRad(Value);
+//  if FAngle360 <> Value then FAngle := DegToRad(Value);
 end;
 
 procedure TSpriteEx.SetGroupNumber(AGroupNumber: Integer);
@@ -2011,9 +2026,15 @@ procedure TSpriteEx.DoDraw;
 var
   Source: TRectangle;
   Dest: TRectangle;
+  AngleVector: TVector2;
 begin
    if FImageLib.IndexOf(FImagename)<0 then Exit;
+
+     if Self.DoCenter then AngleVector:= Vector2Create(Self.Width/2,Self.Height/2)
+    else AngleVector:= Vector2Create(0,0);
+
    BeginBlendMode(Ord(FBlendingEffect));
+
    case MirrorMode of
     mirrorNormal:RectangleSet(@Source, 0, 0,Self.ImageWidth,Self.ImageHeight);
     mirrorX:     RectangleSet(@Source, 0, 0,-Self.ImageWidth,Self.ImageHeight);
@@ -2028,7 +2049,7 @@ begin
                        Self.ImageWidth  * ScaleX,
                        Self.ImageHeight * ScaleY);
            DrawTexturePro(FImageLib[FImageName], Source, Dest,
-           Vector2Create(0, 0), FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
+           AngleVector, FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
          end;
    false: begin
             RectangleSet(@Dest, FX + FWorldX + Offset.X - FEngine.FWorldX,
@@ -2036,7 +2057,7 @@ begin
                        Self.ImageWidth  * ScaleX,
                        Self.ImageHeight * ScaleY);
            DrawTexturePro(FImageLib[FImageName], Source, Dest,
-           Vector2Create(0, 0), FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
+           AngleVector, FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
           end;
    end;
 
@@ -2086,15 +2107,17 @@ end;
 
 procedure TSpriteEx.LookAt(TargetX, TargetY: Integer);
 begin
-  Angle := Angle256(TargetX - Trunc(X), TargetY - Trunc(Y)) / 40.3;
+  Angle:=m_Angle(Self.X,Self.Y,TargetX, TargetY) - 90;
 end;
 
 procedure TSpriteEx.TowardToAngle(Angle: Integer; Speed: Single;
   DoLookAt: Boolean);
 begin
-    if DoLookAt then FAngle := Angle / 40;
-  X := X + (Sin256(Angle) * Speed);
-  Y := Y - (Cos256(Angle) * Speed);
+  ///if DoLookAt then FAngle := Angle / 40;
+//  X := X + (Sin256(Angle) * Speed);
+//  Y := Y - (Cos256(Angle) * Speed);
+  X := X + m_Sin(Angle) * Speed;
+  Y := Y - m_Cos(Angle) * Speed;
 end;
 
 procedure TSpriteEx.TowardToPos(TargetX, TargetY: Integer; Speed: Single;
@@ -2202,10 +2225,13 @@ begin
     if AngleDiff(FSrcAngle, FDestAngle) < 0 then
       FSrcAngle := FSrcAngle - RotateSpeed;
   end;
+
   if FSrcAngle > 255 then
     FSrcAngle := FSrcAngle - 255;
+
   if FSrcAngle < 0 then
     FSrcAngle := 255 + FSrcAngle;
+
   X := X + (Sin256(Trunc(FSrcAngle)) * MoveSpeed);
   Y := Y - (Cos256(Trunc(FSrcAngle)) * MoveSpeed);
 end;

@@ -5,7 +5,7 @@ unit mnit;
 interface
 
 uses
-  cmem, ray_header, ray_application, math, ray_sprites;
+  cmem, ray_header, ray_application, math, ray_sprite;
 
 
 

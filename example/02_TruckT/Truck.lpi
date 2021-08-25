@@ -7,7 +7,7 @@
         <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="myGame"/>
+      <Title Value="Truck"/>
       <ResourceType Value="res"/>
     </General>
     <BuildModes Count="1">
@@ -28,30 +28,27 @@
         <PackageName Value="ray4laz"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="2">
       <Unit0>
-        <Filename Value="myGame.lpr"/>
+        <Filename Value="Truck.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="mnit.pas"/>
+        <Filename Value="munit.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="mUnit"/>
       </Unit1>
-      <Unit2>
-        <Filename Value="ray_spriteengine.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="ray_SpriteEngine"/>
-      </Unit2>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="../../binary/SpriteEngine1"/>
+      <Filename Value="../../binary/Truck"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <UnitOutputDirectory Value="../../lib/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../../../engine"/>
+      <UnitOutputDirectory Value="../../tmp/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
