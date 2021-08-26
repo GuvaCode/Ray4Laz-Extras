@@ -1,4 +1,4 @@
-unit Unit1;
+unit mUnit;
 
 {$mode objfpc}{$H+} 
 
@@ -8,15 +8,11 @@ uses
   cmem, ray_header, ray_application, ray_sprite_engine, sysutils;
 
 type
-
-{ TSpriteTest }
-
 { TFigur }
-
 TFigur = class(TAnimatedSprite)
 private
-  FSpeed: integer;
   public
+    constructor Create(Engine: TSpriteEngine; Texture: TGameTexture); override;
     procedure Move(MoveCount: Double); override;
     procedure SetLine;
 end;
@@ -40,70 +36,71 @@ implementation
 
 { TFigur }
 
+constructor TFigur.Create(Engine: TSpriteEngine; Texture: TGameTexture);
+begin
+  inherited Create(Engine, Texture);
+  X := 0;
+  Y := 0;
+  SpeedX := -40;
+end;
+
 procedure TFigur.Move(MoveCount: Double);
 begin
   inherited Move(MoveCount);
-   // X :=300;// X + SpeedX*MoveCount;
-   // Y:=300;
- // self.DoAnimate:=true;
- // DoAnim(True, 9,15,20);
- // if ((X > 800) and (SpeedX > 0)) or  ((X < -96) and (SpeedX < 0)) then
-  //begin
-
-   // SetLine;
-  //end;
-  writeln(Round(self.AnimPos));
-  DrawText(PChar(IntToStr(Round(Self.AnimPos))),100,0,14,ColorCreate(0,0,255,255));
+  X:=X + SpeedX*MoveCount;
+     if ((X > GetScreenWidth) and (SpeedX > 0)) or
+      ((X < -96) and (SpeedX < 0)) then
+  begin
+   SetLine;
+  end;
 end;
 
 procedure TFigur.SetLine;
 begin
-   SpeedX := -SpeedX;
+  SpeedX :=-SpeedX;
   if SpeedX > 0 then
   begin
-
-    //DoAnim(True,0,15,20);
+    SetAnim(0,7,AnimSpeed,True);
     X := -96;
   end
   else
   begin
-
-    //DoAnim(True, 8,15,20);
-    X := 800 + 96;
+    SetAnim(8,15,AnimSpeed,True);
+    X := GetScreenWidth + 96;
   end;
-  Y := Random(600-96);
+  Y := Random(GetScreenHeight-96);
 end;
 
 
 
 constructor TGame.Create;
+var i:integer;
 begin
   //setup and initialization engine
-  InitWindow(800, 600, 'raylib [Game Project]'); // Initialize window and OpenGL context 
+  InitWindow(800, 600, 'Sprite Engine Animation Sprite'); // Initialize window and OpenGL context
   SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT); // Set window configuration state using flags
   SetTargetFPS(60); // Set target FPS (maximum)
-  ClearBackgroundColor:= BLACK; // Set background color (framebuffer clear color)
+  ClearBackgroundColor:= RAYWHITE; // Set background color (framebuffer clear color)
   // Greate the sprite engine and texture image list 
   SpriteEngine:=TSpriteEngine.Create;
   GameTexture:= TGameTexture.Create;
-  GameTexture.LoadFromFile('boy.png',96,96);
+  GameTexture.LoadFromFile('data/gfx/boy.png');
 
-  Figur:=TFigur.Create(SpriteEngine,GameTexture);
-
-  Figur.X := 0;
-  Figur.Y := 0;
-  Figur.SpeedX  :=20;// -(random(100)+50);
-  Figur.TextureName:='boy';
-  figur.AnimSpeed:=Abs(Figur.SpeedX / 7.5);
-  Figur.SetPattern(96,96);
-  Figur.DoAnimate:=true;
- // figur.DoAnim(True, 8,15,figur.AnimSpeed);
-  Figur.SetAnim(8,15,20,True);
-//  Figur.BlendingEffect:=beMultiplied;
-  Figur.TextureFilter:=tfPoint;
- // SpriteEngine.CameraZoom:=1;
-
-
+  for i := 0 to 5 do
+  begin
+   with TFigur.Create(SpriteEngine,GameTexture) do
+    begin
+      X := 0;
+      Y := 0;
+      SpeedX  := -(random(100)+50);
+      TextureName:='boy';
+      AnimSpeed:=10;
+      SetPattern(96,96);
+      DoAnimate:=true;
+      TextureFilter:=tfBilinear;
+      SetLine;
+    end;
+  end;
 end;
 
 procedure TGame.Update;

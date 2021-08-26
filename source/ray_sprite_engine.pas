@@ -192,7 +192,7 @@ type
     property PatternCount: Integer read FPatternCount write FPatternCount;
 
     property AnimPos    : Single read FAnimPos write FAnimPos;
-    property AnimStart  : Integer read FAnimStart write FAnimStart;
+    property AnimStart  : Integer read FAnimStart write SetAnimStart;
     property AnimCount  : Integer read FAnimCount write FAnimCount;
     property AnimSpeed  : Single read FAnimSpeed write FAnimSpeed;
     property AnimLooped : Boolean read FAnimLooped write FAnimLooped;
@@ -684,6 +684,7 @@ procedure TAnimatedSprite.SetAnim(AniStart, AniCount: Integer;
   AniSpeed: Single; AniLooped: Boolean);
 begin
   FAnimStart := AniStart;
+  SetAnimStart(AniStart);
   FAnimCount := AniCount;
   FAnimSpeed := AniSpeed;
   FAnimLooped := AniLooped;
