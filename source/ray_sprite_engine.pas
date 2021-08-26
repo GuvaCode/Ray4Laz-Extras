@@ -26,8 +26,6 @@ type
 
   TMirrorMode = (MmNormal, MmX, MmY, MmXY);
 
-  TAnimPlayMode = (pmForward, pmBackward);
-
   TJumpState = (jsNone, jsJumping, jsFalling);
   {$EndRegion}
 
@@ -81,6 +79,7 @@ type
     Texture: array of TTexture2D;
     Pattern: array of TPattern;
     function LoadFromFile(FileName: String; Width, Height: Integer): Boolean;
+    function LoadFromFile(FileName: String): Boolean;
     constructor Create;
     destructor Destroy; override;
   end;
@@ -96,6 +95,8 @@ type
     FGreen: Integer;
     FMirrorMode: TMirrorMode;
     FRed: Integer;
+    FSpeedX: Single;
+    FSpeedY: Single;
     FTextureFilter: TTextureFilter;
     FTextureWrap: TTextureWrap;
     FVector: TVector3;
@@ -150,6 +151,9 @@ type
     property MirrorMode: TMirrorMode read FMirrorMode write FMirrorMode;
     property AngleVectorX: Single read FAngleVector.x write FAngleVector.x;
     property AngleVectorY: Single read FAngleVector.y write FAngleVector.y;
+
+    property SpeedX: Single read FSpeedX write FSpeedX;
+    property SpeedY: Single read FSpeedY write FSpeedY;
   end;
 
   { TAnimatedSprite }
@@ -158,7 +162,6 @@ type
     FAnimCount: Integer;
     FAnimEnded: Boolean;
     FAnimLooped: Boolean;
-    FAnimPlayMode: TAnimPlayMode;
     FAnimPos: Single;
     FAnimSpeed: Single;
     FAnimStart: Integer;
@@ -170,13 +173,17 @@ type
     FPatternIndex: Integer;
     FPatternHeight: Integer;
     FPatternWidth: Integer;
+    FOldIndex:Integer;
     procedure SetPatternHeight(Value: Integer);
     procedure SetPatternWidth(Value: Integer);
   public
+    function AnimEnded: Boolean;
     procedure Draw;
     procedure Move(MoveCount: Double); override;
-    procedure DoAnim(Looped: Boolean; Start: Integer; Count: Integer; Speed: Single; PlayMode: TAnimPlayMode = pmForward);
+    procedure SetAnim(AniStart, AniCount: Integer; AniSpeed: Single; AniLooped:Boolean); overload; virtual;
     procedure SetPattern(APatternWidth, APatternHeight: Integer);
+    procedure OnAnimStart; virtual;
+    procedure OnAnimEnd; virtual;
     constructor Create(Engine: TSpriteEngine; Texture: TGameTexture); override;
     destructor Destroy; override;
 
@@ -185,12 +192,11 @@ type
     property PatternCount: Integer read FPatternCount write FPatternCount;
 
     property AnimPos    : Single read FAnimPos write FAnimPos;
-    property AnimStart  : Integer read FAnimStart write SetAnimStart;
+    property AnimStart  : Integer read FAnimStart write FAnimStart;
     property AnimCount  : Integer read FAnimCount write FAnimCount;
     property AnimSpeed  : Single read FAnimSpeed write FAnimSpeed;
     property AnimLooped : Boolean read FAnimLooped write FAnimLooped;
     property DoAnimate  : Boolean read FDoAnimate write FDoAnimate;
-    property AnimPlayMode: TAnimPlayMode read FAnimPlayMode write FAnimPlayMode;
   end;
 
 
@@ -337,6 +343,11 @@ begin
   Result := True;
 end;
 
+function TGameTexture.LoadFromFile(FileName: String): Boolean;
+begin
+  result:=LoadFromFile(FileName,0,0);
+end;
+
 constructor TGameTexture.Create;
 begin
   //--//---//---
@@ -470,7 +481,6 @@ end;
 
 procedure TSprite.Move(MoveCount: Double);
 begin
-
  //--//--//--//
 end;
 
@@ -594,6 +604,14 @@ begin
   Pattern.width := Value;
 end;
 
+function TAnimatedSprite.AnimEnded: Boolean;
+begin
+    if Trunc(AnimPos) = (AnimStart + AnimCount - 1) then
+    Result := True
+  else
+    Result := False;
+end;
+
 procedure TAnimatedSprite.Draw;
 var
   Dest: TRectangle;
@@ -633,56 +651,47 @@ begin
        frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
        FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
 
-      EndBlendMode;
+       FOldIndex:=FPatternIndex;
+       EndBlendMode;
+
     end;
   end;
 end;
 
 procedure TAnimatedSprite.Move(MoveCount: Double);
 begin
-  if not FDoAnimate then Exit;
+   inherited Move(MoveCount);
 
-  case FAnimPlayMode of
+   if not FDoAnimate then Exit;
 
-   pmForward:
-    begin
-      FAnimPos := FAnimPos + FAnimSpeed * MoveCount;
-      if (FAnimPos > FAnimStart + FAnimCount ) then
-       begin
-        if (Trunc(FAnimPos)) = FAnimStart + FAnimCount then FAnimEnded := True;
-        if FAnimLooped then FAnimPos := FAnimStart
-         else
-          begin
-            FAnimPos := FAnimStart + FAnimCount-1 ;
-            FDoAnimate := False;
-          end;
-       end;
-    end;
-
-   pmBackward:
-    begin
-     FAnimPos := FAnimPos - FAnimSpeed * MoveCount;
-     if (FAnimPos < FAnimStart) then
-     if FAnimLooped then FAnimPos := FAnimStart + FAnimCount - 1
+   if Trunc(FAnimPos)>FAnimCount-1 then FAnimPos:= FAnimStart;
+   FAnimPos := FAnimPos + FAnimSpeed * MoveCount;
+   if (FAnimPos >= FAnimStart + FAnimCount) then
+   begin
+    if (Trunc(FAnimPos)) = FAnimStart then OnAnimStart;
+    if AnimEnded then OnAnimEnd;
+    if FAnimLooped then FAnimPos := FAnimStart
      else
       begin
-        FAnimPos := FAnimStart;
-        FDoAnimate := False;
+       FAnimPos := FAnimStart + FAnimCount - 1;
+       FDoAnimate := False;
       end;
     end;
-
-   end;
     FPatternIndex := Trunc(FAnimPos);
 end;
 
-procedure TAnimatedSprite.DoAnim(Looped: Boolean; Start: Integer;
-  Count: Integer; Speed: Single; PlayMode: TAnimPlayMode);
+procedure TAnimatedSprite.SetAnim(AniStart, AniCount: Integer;
+  AniSpeed: Single; AniLooped: Boolean);
 begin
-  FAnimStart  := Start;
-  FAnimCount  := Count;
-  FAnimSpeed  := Speed;
-  FAnimLooped := Looped;
-  FAnimPlayMode:= PlayMode;
+  FAnimStart := AniStart;
+  FAnimCount := AniCount;
+  FAnimSpeed := AniSpeed;
+  FAnimLooped := AniLooped;
+  if (FPatternIndex < FAnimStart) or (FPatternIndex >= FAnimCount + FAnimStart) then
+  begin
+    FPatternIndex := FAnimStart mod FAnimCount;
+    FAnimPos := FAnimStart;
+  end;
 end;
 
 procedure TAnimatedSprite.SetPattern(APatternWidth, APatternHeight: Integer);
@@ -693,6 +702,16 @@ begin
   ColCount := FTexture.Texture[TextureIndex].width div FPatternWidth;
   RowCount := FTexture.Texture[TextureIndex].height div FPatternHeight;
   PatternCount := (ColCount * RowCount) - 1;
+end;
+
+procedure TAnimatedSprite.OnAnimStart;
+begin
+
+end;
+
+procedure TAnimatedSprite.OnAnimEnd;
+begin
+
 end;
 
 constructor TAnimatedSprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);

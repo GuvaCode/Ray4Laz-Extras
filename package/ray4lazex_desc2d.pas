@@ -83,7 +83,7 @@ begin
   ' ClearBackgroundColor:= BLACK; // Set background color (framebuffer clear color)'+LE+
   ' // Greate the sprite engine and texture image list '+LE+
   ' SpriteEngine:=TSpriteEngine.Create;'+LE+
-  ' GameTexture:= GameTexture.Create;'+LE+
+  ' GameTexture:= TGameTexture.Create;'+LE+
   'end;'+LE+
   ''+LE+
   'procedure TGame.Update;'+LE+

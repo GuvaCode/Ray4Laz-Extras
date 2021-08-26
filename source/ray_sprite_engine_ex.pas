@@ -1734,6 +1734,7 @@ end;
 procedure TAnimatedSprite.DoMove(const MoveCount: Single);
 begin
   if not FDoAnimate then  Exit;
+
   case FAnimPlayMode of
     pmForward: // 12345 12345  12345
       begin
