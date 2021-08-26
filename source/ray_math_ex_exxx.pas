@@ -1,4 +1,4 @@
-unit ray_math_ex;
+unit ray_math_ex_EXXX;
 {$mode Delphi}{$H+}
 interface
 

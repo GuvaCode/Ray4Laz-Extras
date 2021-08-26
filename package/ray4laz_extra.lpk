@@ -11,24 +11,29 @@
       </SearchPaths>
     </CompilerOptions>
     <Version Major="1" Release="1"/>
-    <Files Count="4">
+    <Files Count="5">
       <Item1>
         <Filename Value="ray4lazex_desc.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="ray4lazEx_desc"/>
       </Item1>
       <Item2>
-        <Filename Value="../source/ray_application.pas"/>
-        <UnitName Value="ray_application"/>
+        <Filename Value="ray4lazex_desc2d.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="ray4lazex_desc2d"/>
       </Item2>
       <Item3>
-        <Filename Value="../source/ray_model.pas"/>
-        <UnitName Value="ray_model"/>
+        <Filename Value="../source/ray_application.pas"/>
+        <UnitName Value="ray_application"/>
       </Item3>
       <Item4>
+        <Filename Value="../source/ray_model.pas"/>
+        <UnitName Value="ray_model"/>
+      </Item4>
+      <Item5>
         <Filename Value="../source/ray_sprite_engine.pas"/>
         <UnitName Value="ray_sprite_engine"/>
-      </Item4>
+      </Item5>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="3">

@@ -437,32 +437,27 @@ var
   Source: TRectangle;
   Dest: TRectangle;
 begin
-
   if not TextureIndex >= 0 then Exit;
-
-   if Assigned(FEngine) then
-    begin //toDo visible Area;
+  if Assigned(FEngine) then
+  begin
      if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (FTexture.Texture[TextureIndex].width + FEngine.Camera.offset.X) ) and
         (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (FTexture.Texture[TextureIndex].height + FEngine.Camera.offset.Y) ) and
         (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
         (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y))
    then
-   begin
-    BeginBlendMode(Ord(FBlendingEffect));
-
-
-   case MirrorMode of
-    mmNormal:RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
-    mmX:     RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
-    mmY:     RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
-    mmXY:    RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
-   end;
+    begin
+     BeginBlendMode(Ord(FBlendingEffect));
+     case MirrorMode of
+       mmNormal:RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
+       mmX:     RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
+       mmY:     RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
+       mmXY:    RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
+     end;
 
      RectangleSet(@Dest, FEngine.FCamera.target.x + X,    //X + FWorldX + Offset.X - FEngine.FWorldX,
                          FEngine.FCamera.target.y + Y,    //FY + FWorldY + Offset.Y - FEngine.FWorldY,
                          FTexture.Texture[TextureIndex].width  * ScaleX,
                          FTexture.Texture[TextureIndex].height * ScaleY);
-
 
      DrawTexturePro(FTexture.Texture[TextureIndex],
      Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
@@ -470,7 +465,7 @@ begin
 
      EndBlendMode;
   end;
-  end;
+ end;
 end;
 
 procedure TSprite.Move(MoveCount: Double);
@@ -603,14 +598,11 @@ procedure TAnimatedSprite.Draw;
 var
   Dest: TRectangle;
   frameRec:TRectangle;
-  Zoom:Integer;
 begin
-  if FEngine.CameraZoom <1 then Zoom:=6 else Zoom:=0; ;
   if not TextureIndex >= 0 then Exit;
 
    if Assigned(FEngine) then
-    begin //toDo visible Area;
-
+    begin
      if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (PatternWidth + FEngine.Camera.offset.X) ) and
         (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (PatternHeight + FEngine.Camera.offset.Y) ) and
         (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
@@ -622,7 +614,6 @@ begin
     framerec:= SetPatternRec(FTexture.Texture[TextureIndex], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
     framerec.width:=FPatternWidth;
     framerec.height:=FPatternHeight;
-
 
     case MirrorMode of
         mmNormal:RectangleSet(@frameRec, framerec.x, framerec.y, Self.PatternWidth, Self.PatternHeight);
@@ -642,10 +633,9 @@ begin
        frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
        FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
 
-
       EndBlendMode;
     end;
-    end;
+  end;
 end;
 
 procedure TAnimatedSprite.Move(MoveCount: Double);

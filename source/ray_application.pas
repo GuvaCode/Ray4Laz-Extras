@@ -11,7 +11,7 @@ type
 { TRayApplication }
 TRayApplication = class (TObject)
   private
-    FClearBgColor: TColor;
+    FClearBackgroundColor: TColor;
     procedure SetCaption(AValue: string);
   protected
 
@@ -20,8 +20,6 @@ TRayApplication = class (TObject)
     constructor Create; virtual;
     // Free the application
     destructor Destroy; override;
-    // Initializes the application
-    procedure Init; virtual;
     // Shutdown the application
     procedure Shutdown; virtual;
     // Update the application
@@ -36,7 +34,7 @@ TRayApplication = class (TObject)
     procedure Terminate;
     // Caption on window
     property Caption: string write SetCaption;
-    property ClearBgColor: TColor read FClearBgColor write FClearBgColor;
+    property ClearBackgroundColor: TColor read FClearBackgroundColor write FClearBackgroundColor;
   end;
 
 implementation
@@ -50,8 +48,6 @@ end;
 constructor TRayApplication.Create;
 begin
 
-
-
 end;
 
 destructor TRayApplication.Destroy;
@@ -59,10 +55,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TRayApplication.Init;
-begin
-
-end;
 
 procedure TRayApplication.Shutdown;
 begin
@@ -71,12 +63,11 @@ end;
 
 procedure TRayApplication.Update;
 begin
-
+  if IsWindowResized then Resized;
 end;
 
 procedure TRayApplication.Render;
 begin
-
 
 end;
 
@@ -87,13 +78,11 @@ end;
 
 procedure TRayApplication.Run;
 begin
-  Init;
-  Resized;
   while not WindowShouldClose() do
   begin
     Update;
     BeginDrawing();
-    ClearBackground(FClearBgColor);
+    ClearBackground(FClearBackgroundColor);
     Render;
     EndDrawing();
   end;

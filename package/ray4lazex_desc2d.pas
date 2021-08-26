@@ -1,5 +1,4 @@
-unit ray4lazEx_desc;
-
+unit ray4lazex_desc2d;
 {$mode objfpc}{$H+}
 
 interface
@@ -9,9 +8,9 @@ uses
 
 type
 
-    { TRgfApplicationDescriptor }
+    { TSpriteEngineApplicationDescriptor }
 
-    TRgfApplicationDescriptor = class(TProjectDescriptor)
+    TSpriteEngineApplicationDescriptor = class(TProjectDescriptor)
   public
     constructor Create; override;
     function GetLocalizedName: string; override;
@@ -20,9 +19,9 @@ type
     function CreateStartFiles(AProject: TLazProject): TModalResult; override;
   end;
 
-    { TRgfFileUnit }
+    { TSpriteEngineFileUnit }
 
-    TRgfFileUnit = class(TFileDescPascalUnit)
+    TSpriteEngineFileUnit = class(TFileDescPascalUnit)
   public
     constructor Create; override;
     function GetInterfaceUsesSection: string; override;
@@ -36,7 +35,7 @@ type
  procedure Register;
 
  resourcestring
-   AboutPrj = 'Ray Game Application';
+   AboutPrj = 'Ray SpriteEngine Game Application';
    AboutDsc='The Ray Game Framework is a set of classes for helping in the creation of 2D and 3D games in pascal.';
 
 
@@ -45,33 +44,33 @@ implementation
 
 procedure Register;
 begin
-  RegisterProjectFileDescriptor(TRgfFileUnit.Create,FileDescGroupName);
-  RegisterProjectDescriptor(TRgfApplicationDescriptor.Create);
+  RegisterProjectFileDescriptor(TSpriteEngineFileUnit.Create,FileDescGroupName);
+  RegisterProjectDescriptor(TSpriteEngineApplicationDescriptor.Create);
 end;
  function FileDescriptorByName() : TProjectFileDescriptor;
 begin
-  Result:=ProjectFileDescriptors.FindByName('RGA_Unit');
+  Result:=ProjectFileDescriptors.FindByName('RGA2d_Unit');
 end;
-{ TRgfFileUnit }
+{ TSpriteEngineFileUnit }
 
-constructor TRgfFileUnit.Create;
+constructor TSpriteEngineFileUnit.Create;
 begin
    inherited Create;
-  Name:='RGA_Unit';
+  Name:='RGA2d_Unit';
   UseCreateFormStatements:=False;
 end;
 
-function TRgfFileUnit.GetInterfaceUsesSection: string;
+function TSpriteEngineFileUnit.GetInterfaceUsesSection: string;
 begin
-    Result:='cmem, ray_header, ray_application'
+    Result:='cmem, ray_header, ray_application, ray_sprite_engine'
 end;
 
-function TRgfFileUnit.GetUnitDirectives: string;
+function TSpriteEngineFileUnit.GetUnitDirectives: string;
 begin
   result := '{$mode objfpc}{$H+} '
 end;
 
-function TRgfFileUnit.GetImplementationSource(const Filename, SourceName,
+function TSpriteEngineFileUnit.GetImplementationSource(const Filename, SourceName,
   ResourceName: string): string;
 begin
     Result:=
@@ -82,28 +81,39 @@ begin
   ' SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT); // Set window configuration state using flags'+LE+
   ' SetTargetFPS(60); // Set target FPS (maximum)' +LE+
   ' ClearBackgroundColor:= BLACK; // Set background color (framebuffer clear color)'+LE+
+  ' // Greate the sprite engine and texture image list '+LE+
+  ' SpriteEngine:=TSpriteEngine.Create;'+LE+
+  ' GameTexture:= GameTexture.Create;'+LE+
   'end;'+LE+
   ''+LE+
   'procedure TGame.Update;'+LE+
   'begin'+LE+
+  ' SpriteEngine.Move(GetFrameTime); // move all sprites in SpriteEngine'+LE+
   'end;'+LE+
   ''+LE+
   'procedure TGame.Render;'+LE+
   'begin'+LE+
+  ' BeginMode2D(SpriteEngine.Camera);'+LE+
+  ' SpriteEngine.Draw;'+LE+
+  ' EndMode2D;'+LE+
   ' DrawFPS(10,10); // Draw current FPS'+LE+
   'end;'+LE+
   ''+LE+
   'procedure TGame.Resized;'+LE+
   'begin'+LE+
+  ' SpriteEngine.VisibleWidth:=GetScreenWidth;'+LE+
+  ' SpriteEngine.VisibleHeight:=GetScreenHeight;'+LE+
   'end;'+LE+
   ''+LE+
   'procedure TGame.Shutdown;'+LE+
   'begin'+LE+
+  ' SpriteEngine.Free;'+LE+
+  ' GameTexture.Free;'+LE+
   'end;' +LE+LE;
 
 end;
 
-function TRgfFileUnit.GetInterfaceSource(const aFilename, aSourceName,
+function TSpriteEngineFileUnit.GetInterfaceSource(const aFilename, aSourceName,
   aResourceName: string): string;
 begin
    Result:=
@@ -112,6 +122,8 @@ begin
 '  private'+LE+
 '  protected'+LE+
 '  public'+LE+
+'    SpriteEngine: TSpriteEngine;'+LE+
+'    GameTexture: TGameTexture;'+LE+
 '    constructor Create; override;'+LE+
 '    procedure Update; override;'+LE+
 '    procedure Render; override;'+LE+
@@ -120,25 +132,25 @@ begin
 '  end;'+LE+LE
 end;
 
-{ TRgfApplicationDescriptor }
+{ TSpriteEngineApplicationDescriptor }
 
-constructor TRgfApplicationDescriptor.Create;
+constructor TSpriteEngineApplicationDescriptor.Create;
 begin
   inherited Create;
   Name := AboutDsc;
 end;
 
-function TRgfApplicationDescriptor.GetLocalizedName: string;
+function TSpriteEngineApplicationDescriptor.GetLocalizedName: string;
 begin
   Result := AboutPrj;
 end;
 
-function TRgfApplicationDescriptor.GetLocalizedDescription: string;
+function TSpriteEngineApplicationDescriptor.GetLocalizedDescription: string;
 begin
   Result := AboutDsc;
 end;
 
-function TRgfApplicationDescriptor.InitProject(AProject: TLazProject
+function TSpriteEngineApplicationDescriptor.InitProject(AProject: TLazProject
   ): TModalResult;
 var
   NewSource: String;
@@ -171,20 +183,17 @@ begin
   'end.'+LE;
 
   AProject.MainFile.SetSourceText(NewSource,true);
-
-
   AProject.AddPackageDependency('ray4laz');
- AProject.AddPackageDependency('ray4laz_extra');
+  AProject.AddPackageDependency('ray4laz_extra');
   AProject.LazCompilerOptions.UnitOutputDirectory:='lib'+PathDelim+'$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.TargetFilename:='Game';
-//  AProject.LazCompilerOptions.Win32GraphicApp:=True;
-//AProject.LazCompilerOptions.GenerateDebugInfo:=False;
-
+ //AProject.LazCompilerOptions.Win32GraphicApp:=True;
+ //AProject.LazCompilerOptions.GenerateDebugInfo:=False;
 end;
 
 
 
-function TRgfApplicationDescriptor.CreateStartFiles(AProject: TLazProject
+function TSpriteEngineApplicationDescriptor.CreateStartFiles(AProject: TLazProject
   ): TModalResult;
 begin
   Result:=LazarusIDE.DoNewEditorFile(FileDescriptorByName,'','',[nfIsPartOfProject,nfOpenInEditor,nfCreateDefaultSrc]);

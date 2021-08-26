@@ -8,14 +8,15 @@ unit ray4laz_extra;
 interface
 
 uses
-  ray4lazEx_desc, ray_application, ray_model, ray_sprite_engine, 
-  LazarusPackageIntf;
+  ray4lazEx_desc, ray4lazex_desc2d, ray_application, ray_model, 
+  ray_sprite_engine, LazarusPackageIntf;
 
 implementation
 
 procedure Register;
 begin
   RegisterUnit('ray4lazEx_desc', @ray4lazEx_desc.Register);
+  RegisterUnit('ray4lazex_desc2d', @ray4lazex_desc2d.Register);
 end;
 
 initialization
