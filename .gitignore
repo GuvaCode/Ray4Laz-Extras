@@ -25,6 +25,7 @@ binary/*
 backup/
 #examples/
 lib/
+test/
 templates/standard_game/
 *.lps
 

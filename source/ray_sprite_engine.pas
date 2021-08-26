@@ -27,6 +27,9 @@ type
   TMirrorMode = (MmNormal, MmX, MmY, MmXY);
 
   TJumpState = (jsNone, jsJumping, jsFalling);
+
+  TCollideMode = (cmCircle, cmRect, cmCircleRec, cmPolygon);
+
   {$EndRegion}
 
   { TSpriteEngine }
@@ -92,6 +95,11 @@ type
     FAnimated: Boolean;
     FBlendingEffect: TBlendingEffect;
     FBlue: Integer;
+    FCollideCenter: TVector2;
+    FCollideMode: TCollideMode;
+    FCollideRadius: Single;
+    FCollideRect: TRectangle;
+    FCollisioned: Boolean;
     FGreen: Integer;
     FMirrorMode: TMirrorMode;
     FRed: Integer;
@@ -117,16 +125,19 @@ type
     FTextureIndex: Integer;
     procedure SetTextureName(Value: string);
     procedure SetTextureIndex(Value: Integer);
+    procedure DoCollision(const Sprite: TSprite); virtual;
+    procedure Move(MoveCount: Double); virtual;
   public
     IsSpriteDead: Boolean;
     ScaleX, ScaleY: Single;
     Visible: Boolean;
     Pattern: TRectangle;
     procedure Draw;
-    procedure Move(MoveCount: Double); virtual;
     procedure Dead;
     procedure SetOrder(Value: Single);
     procedure SetScale(Value: Single);
+    procedure Collision(const Other: TSprite); overload; virtual;
+    procedure Collision; overload; virtual;
 
     constructor Create(Engine: TSpriteEngine; Texture: TGameTexture); virtual;
     destructor Destroy; override;
@@ -141,9 +152,9 @@ type
     property Z: Single read FZ write SetOrder;
     property Angle: Single read FAngle write FAngle;
     property Scale: Single read FScale write SetScale;
-    property Red: Integer read FRed write SetRed default 255;
-    property Green: Integer read FGreen write SetGreen default 255;
-    property Blue: Integer read FBlue write SetBlue default 255;
+    property Red_: Integer read FRed write SetRed default 255;
+    property Green_: Integer read FGreen write SetGreen default 255;
+    property Blue_: Integer read FBlue write SetBlue default 255;
     property Alpha: Integer read FAlpha write SetAlpha default 255;
     property BlendingEffect: TBlendingEffect read FBlendingEffect write FBlendingEffect;
     property TextureFilter: TTextureFilter read FTextureFilter write SetTexture_Filter;
@@ -152,6 +163,11 @@ type
     property AngleVectorX: Single read FAngleVector.x write FAngleVector.x;
     property AngleVectorY: Single read FAngleVector.y write FAngleVector.y;
 
+    property CollideMode: TCollideMode read FCollideMode write FCollideMode;
+    property Collisioned: Boolean read FCollisioned write FCollisioned;
+    property CollideRect: TRectangle read FCollideRect write FCollideRect;
+    property CollideCenter: TVector2 read FCollideCenter write FCollideCenter;
+    property CollideRadius: Single read FCollideRadius write FCollideRadius;
     property SpeedX: Single read FSpeedX write FSpeedX;
     property SpeedY: Single read FSpeedY write FSpeedY;
   end;
@@ -443,6 +459,11 @@ begin
   Pattern.width := FTexture.Pattern[FTextureIndex].Width;
 end;
 
+procedure TSprite.DoCollision(const Sprite: TSprite);
+begin
+  //
+end;
+
 procedure TSprite.Draw;
 var
   Source: TRectangle;
@@ -507,6 +528,52 @@ begin
   ScaleY := FScale;
 end;
 
+procedure TSprite.Collision(const Other: TSprite);
+var
+  //Delta: Real;
+  IsCollide: Boolean;
+begin
+  IsCollide := False;
+
+  if (FCollisioned) and (Other.FCollisioned) and (not IsSpriteDead) and (not Other.IsSpriteDead) then
+  begin
+    case FCollideMode of
+      cmCircle:
+        begin
+         IsCollide := CheckCollisionCircles(Self.CollideCenter,Self.CollideRadius,Other.CollideCenter,Other.CollideRadius);
+        end;
+      cmRect:
+        begin
+          IsCollide:=CheckCollisionRecs(Self.FCollideRect, Other.FCollideRect);
+        end;
+      cmCircleRec:
+        begin
+          IsCollide:=CheckCollisionCircleRec(Self.CollideCenter,Self.CollideRadius,Other.CollideRect);
+        end;
+      cmPolygon:
+        begin
+          //IsCollide := OverlapPolygon(Self.FCollidePolygon, Other.FCollidePolygon);
+        end;
+    end;
+
+    if IsCollide then
+    begin
+      DoCollision(Other);
+      Other.DoCollision(Self);
+    end;
+ end;
+end;
+
+procedure TSprite.Collision;
+var
+  I: Integer;
+begin
+  if (FEngine <> nil) and (not IsSpriteDead) and (Collisioned) then
+  begin
+   for i := 0 to FEngine.FList.Count - 1 do Collision(TSprite(FEngine.FList.Items[i]));
+  end;
+end;
+
 constructor TSprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);
 begin
   FAnimated := False;
@@ -517,9 +584,9 @@ begin
   Pattern.width := 0;
   Pattern.height := 0;
 
-  Blue := 255;
-  Green := 255;
-  Red := 255;
+  Blue_ := 255;
+  Green_ := 255;
+  Red_ := 255;
   Alpha := 255;
 
   ScaleX := 1.0;
