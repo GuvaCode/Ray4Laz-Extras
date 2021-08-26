@@ -12,7 +12,7 @@ tmp/*.compiled
 tmp/
 
 binary/*
-!binary/resources/
+!binary/data/
 
 
 
