@@ -1,5 +1,5 @@
 unit ray_math_ex_EXXX;
-{$mode Delphi}{$H+}
+//{$mode Delphi}{$H+}
 interface
 
 uses
@@ -68,6 +68,7 @@ function  m_Orientation( x, y, x1, y1, x2, y2 : Single ) : Integer;
 var
   cosTable : array[ 0..360 ] of Single;
   sinTable : array[ 0..360 ] of Single;
+
 
 CONST
     ORIENTATION_LEFT  = -1;

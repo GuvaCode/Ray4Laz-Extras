@@ -8,6 +8,9 @@ uses
   cmem, ray_header, ray_application, ray_model, ray_rlgl;
 
 type
+TBoomber = class(T3dModel)
+
+end;
 
 { TGame }
 
@@ -17,9 +20,9 @@ TGame = class(TRayApplication)
   public
       Engine3d: TModelEngine;
       Cube:   TMesh;
-      skybox: TModel;
+       skybox: TModel;
+       Boomber: TBoomber;
     constructor Create; override;
-    procedure Init; override;
     procedure Update; override;
     procedure Render; override;
     procedure Shutdown; override;
@@ -35,16 +38,19 @@ implementation
 constructor TGame.Create;
 begin
   inherited;
-  SetTargetFPS(60);
+   InitWindow(800, 600, 'raylib [Game Project]'); // Initialize window and OpenGL context
+  SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT); // Set window configuration state using flags
+  SetTargetFPS(60); // Set target FPS (maximum)
+ ClearBackgroundColor:= WHITE;
   Engine3d:=TModelEngine.Create;
-  CreateSkyBox;
+ // CreateSkyBox;
   Engine3d.EngineCameraMode:=cmFirstPerson;
+
+  Boomber:=TBoomber.Create(Engine3d);
+  Boomber.Load3dModel('data/model/bomber.glb');
+  Boomber.Scale:=0.0100;
 end;
 
-procedure TGame.Init;
-begin
-
-end;
 
 procedure TGame.Update;
 begin
@@ -53,7 +59,7 @@ end;
 
 procedure TGame.Render;
 begin
-  RenderSkyBox;
+ // RenderSkyBox;
   Engine3d.Draw;
 end;
 
@@ -61,9 +67,10 @@ procedure TGame.Shutdown;
 begin
    // De-Initialization
     //--------------------------------------------------------------------------------------
-    UnloadShader(skybox.materials[0].shader);
-    UnloadTexture(skybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture);
-    UnloadModel(skybox);        // Unload skybox model
+
+   // UnloadShader(skybox.materials[0].shader);
+   // UnloadTexture(skybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture);
+   // UnloadModel(skybox);        // Unload skybox model
 end;
 
 procedure TGame.CreateSkyBox;
@@ -71,7 +78,7 @@ var img: TImage;
     mMap:Integer;
 begin
    Cube:=GenMeshCube(1.0,1.0,1.0);
-   SkyBox:=LoadModelFromMesh(cube);
+   SkyBox:=LoadModelFromMesh(cube);        //data/shaders/
    Skybox.materials[0].shader := LoadShader(ShadersPath+'skybox.vs',ShadersPath+'skybox.fs');
    mMap:=MATERIAL_MAP_CUBEMAP;
    SetShaderValue(skybox.materials[0].shader, GetShaderLocation(skybox.materials[0].shader, 'environmentMap'), @mMap , SHADER_UNIFORM_INT);

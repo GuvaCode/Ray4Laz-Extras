@@ -13,35 +13,7 @@ const
   ORIENTATION_RIGHT = 1;
   ORIENTATION_ZERO  = 0;
 
-type
-  zglPPoint2D = ^zglTPoint2D;
-  zglTPoint2D = record
-    X, Y : Single;
-end;
 
-type
-  zglPPoints2D = ^zglTPoints2D;
-  zglTPoints2D = array[ 0..0 ] of zglTPoint2D;
-
-type
-  zglPLine = ^zglTLine;
-  zglTLine = record
-    x0, y0 : Single;
-    x1, y1 : Single;
-end;
-
-type
-  zglPRect = ^zglTRect;
-  zglTRect = record
-    X, Y, W, H : Single;
-end;
-
-type
-  zglPCircle = ^zglTCircle;
-  zglTCircle = record
-    cX, cY : Single;
-    Radius : Single;
-end;
 
 function min( a, b : Single ) : Single; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function max( a, b : Single ) : Single; {$IFDEF USE_INLINE} inline; {$ENDIF}
@@ -49,24 +21,29 @@ function max( a, b : Single ) : Single; {$IFDEF USE_INLINE} inline; {$ENDIF}
 procedure m_SinCos( Angle : Single; out s, c : Single ); {$IFDEF USE_ASM} assembler; {$ELSE} {$IFDEF USE_INLINE} inline; {$ENDIF} {$ENDIF}
 
 procedure InitCosSinTables;
+procedure InitCosTable;
 function  m_Cos( Angle : Integer ) : Single;
 function  m_Sin( Angle : Integer ) : Single;
 function  m_Distance( x1, y1, x2, y2 : Single ) : Single;
 function  m_FDistance( x1, y1, x2, y2 : Single ) : Single;
 function  m_Angle( x1, y1, x2, y2 : Single ) : Single;
 function  m_Orientation( x, y, x1, y1, x2, y2 : Single ) : Integer;
-
-
+function  m_Angle256(x, y: Integer): Single;
+function  m_Cos256(i: Integer): Single;
+function  m_Sin256(i: Integer): Single;
 var
-  cosTable : array[ 0..360 ] of Single;
-  sinTable : array[ 0..360 ] of Single;
+  cosTable :   array[ 0..360 ] of Single;
+  sinTable :   array[ 0..360 ] of Single;
+  CosTable256: array[0..255] of Single;
 
 implementation
 
+
 function ArcTan2( dx, dy : Single ) : Single;
 begin
-  Result := abs( ArcTan( dy / dx ) * ( 180 / pi ) );
+   // Result := abs( ArcTan( dy / dx ) * ( 180 / pi ) );
 end;
+
 
 function min( a, b : Single ) : Single; {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
@@ -106,6 +83,14 @@ begin
       cosTable[ i ] := cos( rad_angle );
       sinTable[ i ] := sin( rad_angle );
     end;
+end;
+
+procedure InitCosTable;
+var
+  i: Integer;
+begin
+  for i := 0 to 255 do
+    CosTable256[i] := Cos((i / 256) * 2 * PI);
 end;
 
 function m_Cos( Angle : Integer ) : Single;
@@ -190,11 +175,26 @@ begin
       Result := ORIENTATION_ZERO;
 end;
 
+function m_Angle256(X, Y: Integer): Single;
+begin
+  Result := (Arctan2(X, Y) *  - 40.743665431) + 128;
+end;
+
+function m_Cos256(i: Integer): Single;
+begin
+  Result := CosTable256[i and 255];
+end;
+
+function m_Sin256(i: Integer): Single;
+begin
+  Result := CosTable256[(i + 192) and 255];
+end;
+
 
 
 initialization
   InitCosSinTables();
-
+  InitCosTable();
 finalization
 
 

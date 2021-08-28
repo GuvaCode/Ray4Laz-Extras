@@ -5,7 +5,7 @@ unit gametypes;
 interface
 
 uses
-  Classes, SysUtils, GameClasses, ray_sprite_engine, fgl, ray_header;
+  Classes, SysUtils, GameClasses, ray_sprite_engine_ex, fgl, ray_header;
 
 var
   PlayerShip: TPlayerShip;

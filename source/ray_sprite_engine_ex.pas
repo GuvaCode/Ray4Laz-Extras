@@ -2133,7 +2133,7 @@ begin
   if DoLookAt then
     LookAt(TargetX, TargetY);
   Direction := Trunc(Angle256(TargetX - Trunc(Self.X), TargetY - Trunc(Self.Y)));
-  if (not SameValue(X, TargetX, Speed + 1)) or (not SameValue(Y, TargetY, Speed + 1)) then
+  if (not SameValue(X,SameValue TargetX, Speed + 1)) or (not SameValue(Y, TargetY, Speed + 1)) then
   begin
     X := X + (Sin256(Direction) * Speed);
     Y := Y - (Cos256(Direction) * Speed);

@@ -5,7 +5,7 @@ unit GameClasses;
 interface
 
 uses
-  Classes, SysUtils, ray_sprite_engine, ray_header;
+  Classes, SysUtils, ray_sprite_engine_ex, ray_header;
 
 
 type
@@ -162,7 +162,7 @@ type
 
 
 implementation
-uses gametypes, ray_math_ex;
+uses gametypes, ray_math_ex_exxx;
 
 { TAsteroids }
 procedure TAsteroids.DoMove(const MoveCount: Single);
@@ -186,17 +186,17 @@ end;
 procedure TPlayerBullet.DoMove(const MoveCount: Single);
 begin
   inherited DoMove(MoveCount);
- // Angle:=PlayerShip.Angle;
-///  TowardToAngle(Trunc(Angle / 40), MoveSpeed, True);
+  Angle:=PlayerShip.Angle;
+  TowardToAngle(Trunc(Angle / 40), MoveSpeed, True);
   Self.RotateToAngle(0,10,MoveSpeed);
- { CollidePos := Point(Round(X) + 24, Round(Y) + 38);
+  CollidePos := Point(Round(X) + 24, Round(Y) + 38);
   Inc(FCounter);
 
   if FCounter > 180 then
     Dead;
   if Trunc(AnimPos) >= 11 then
     Dead;
-  Collision;  }
+  Collision;
 
 end;
 
@@ -491,16 +491,16 @@ procedure TPlayerShip.DoMove(const MoveCount: Single);
       Deccelerate;
     if ImageName = 'PlayerShip' then
     begin
-      UpdatePos(1);
+      UpdatePos(MoveCount);
      // if Angle < 0 then Angle:=0;
      // if Angle> 360 then angle:=0;
-      LookAt(GetMouseX, GetMouseY);
+     // LookAt(GetMouseX, GetMouseY);
     // Angle:=Self.Angle;
-   //  Angle := Angle256(Trunc(GetMouseX) - 512, Trunc(GetMouseY) - 384) ;
+     Angle := Angle256(Trunc(GetMouseX) - 512, Trunc(GetMouseY) - 384) ;
 
 
 
-   ///  Direction := Trunc(Angle256(GetMouseX - 512, GetMouseY - 384));
+    Direction := Trunc(Angle256(GetMouseX - 512, GetMouseY - 384));
    //  Angle360:= Round(Angle256(GetMouseX - 512, GetMouseY - 384) * 0.2);
    // Angle:=Angle256(GetMouseX - 512, GetMouseY - 384) * 0.2;
      //Round(m_Angle(X-PlayerShip.PatternWidth/2,Y-PlayerShip.PatternHeight/2,GetMouseX,GetMouseY));

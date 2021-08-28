@@ -12,7 +12,7 @@ unit ray_sprite_engine;
 interface
 
 uses
- ray_header, ray_math_2d, Classes, SysUtils;
+ ray_header, ray_math_2d, Classes, SysUtils, math;
 
 type
   {$Region Enum}
@@ -119,6 +119,7 @@ type
     procedure SetRed(AValue: Integer);
     procedure SetTexture_Filter(AValue: TTextureFilter);
     procedure SetTexture_Wrap(AValue: TTextureWrap);
+    procedure SetRotation (const Value: Single);
   protected
     FEngine: TSpriteEngine;
     FTextureName: string;
@@ -143,8 +144,6 @@ type
     destructor Destroy; override;
 
     procedure LookAt(TargetX, TargetY: Single);
-    procedure TowardToAngle(Angle, Speed: Single; DoLookAt: Boolean);
-
     property TextureIndex: Integer read FTextureIndex write SetTextureIndex;
     property TextureName: string read FTextureName write SetTextureName;
     property X: Single read FVector.X write FVector.X;
@@ -170,6 +169,7 @@ type
     property CollideRadius: Single read FCollideRadius write FCollideRadius;
     property SpeedX: Single read FSpeedX write FSpeedX;
     property SpeedY: Single read FSpeedY write FSpeedY;
+
   end;
 
   { TAnimatedSprite }
@@ -435,6 +435,16 @@ begin
   SetTextureWrap(FTexture.Texture[TextureIndex],Ord(FTextureWrap));
 end;
 
+procedure TSprite.SetRotation(const Value: Single);
+begin
+    if (Fangle <> Value) then
+  begin
+    Fangle:= Value;
+
+   // TransformRequired:= True;
+  end;
+end;
+
 procedure TSprite.SetTextureName(Value: string);
 var i: Integer;
 begin
@@ -609,16 +619,8 @@ end;
 
 procedure TSprite.LookAt(TargetX, TargetY: Single);
 begin
-  Angle:=m_Angle(Self.X,Self.Y,TargetX, TargetY) - 90;
+   Angle:=m_Angle(Self.X,Self.Y,TargetX, TargetY)-90;
 end;
-
-procedure TSprite.TowardToAngle(Angle, Speed: Single; DoLookAt: Boolean);
-begin
-  if DoLookAt then FAngle := Angle;
-  X := X + m_Sin(Round(Angle)) * Speed;
-  Y := Y - m_Cos(Round(Angle)) * Speed;
-end;
-
 
 
 {$EndRegion}

@@ -5,7 +5,7 @@ unit mUnit;
 interface
 
 uses
-  cmem, ray_header, ray_application, ray_sprite_engine, GameClasses, ray_math_ex;
+  cmem, ray_header, ray_application, ray_sprite_engine_ex, GameClasses, ray_math_ex_exxx;
 
 type
 
@@ -17,7 +17,7 @@ TGame = class(TRayApplication)
   public
     Camera:TCamera2d;
     constructor Create; override;
-    procedure Init; override;
+   /// procedure Init; override;
     procedure Update; override;
     procedure Render; override;
     procedure Shutdown; override;
@@ -34,10 +34,10 @@ var FileSearchRec: TSearchRec;
      Rn:integer;
 begin
    InitWindow(1024, 768, 'raylib [core] - basic window');
-  SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT);
+   SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT);
 
   SetTargetFPS(60); // set FPS
-   ClearBgColor:=Black;
+  // ClearBgColor:=Black;
   //Greate FPGMap for image list
   GameImages:= specialize TFPGMap<string, TTexture>.Create;
 
@@ -46,11 +46,11 @@ begin
   SpriteEngine.VisibleHeight := 1600;
 
   //loadimages
-  if FindFirst(ExtractFilePath(ParamStr(0)) + 'spacegame/Gfx/' + '*.png', faAnyfile, FileSearchRec) = 0 then
+  if FindFirst(ExtractFilePath(ParamStr(0)) + 'Gfx/' + '*.png', faAnyfile, FileSearchRec) = 0 then
     repeat
-      LoadingTexture('spacegame/Gfx/' + FileSearchRec.Name);
+      LoadingTexture('Gfx/' + FileSearchRec.Name);
     until FindNext(FileSearchRec) <> 0;
-  LoadingTexture('spacegame/Gfx/Space.jpg');
+  LoadingTexture('Gfx/Space.jpg');
 
   // create asteroids
   for  I := 0 to 500 do
@@ -198,21 +198,19 @@ begin
   Camera.zoom:=1.0;
 
 
-    LoadMap('Level1.map');
+  LoadMap('Level1.map');
   CreateMap(500, 500);
 
 
 end;
 
-procedure TGame.Init;
-begin
-end;
+
 
 procedure TGame.Update;
 begin
-
-    PlayerShip.LookAt(GetMouseX + Round(Camera.target.x - Camera.offset.x) ,
-                GetMouseY + Round( Camera.target.y - Camera.offset.y));
+     PlayerShip.LookAt( GetMouseX,GetMouseY);
+    //PlayerShip.LookAt(GetMouseX + Round(Camera.target.x - Camera.offset.x) ,
+    //            GetMouseY + Round( Camera.target.y - Camera.offset.y));
 
   if IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) then
   begin
@@ -272,7 +270,7 @@ begin
 
 
 
-  SpriteEngine.Move(1); // update sprite engine on frame time
+  SpriteEngine.Move(GetFrameTime); // update sprite engine on frame time
 end;
 
 procedure TGame.Render;
@@ -280,11 +278,11 @@ begin
 
 
 
-  BeginMode2D(Camera);
+ // BeginMode2D(Camera);
 
   SpriteEngine.Draw;
 
-  EndMode2D;
+ // EndMode2D;
 
   DrawText(PChar(IntToStr(GetFPS)+' FPS'),10,10,10,BLACK);
   DrawText(PChar(IntToStr(GetMouseX)+' ------ '+ IntToStr(GetMouseY)),50,10,10,Red);
