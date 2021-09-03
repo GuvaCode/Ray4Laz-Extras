@@ -157,7 +157,7 @@ end;
 
 procedure TGame.Render;
 begin
-  BeginMode2D(SpriteEngine.Camera);
+  //BeginMode2D(SpriteEngine.Camera);
   SpriteEngine.Draw;
 
 
@@ -173,7 +173,7 @@ begin
   cmCircleRec: DrawCircleLines(Round(Wall.CollideCenter.x),Round(Wall.CollideCenter.y),wall.CollideRadius,Lime);
   end;
 
-  EndMode2D;
+//  EndMode2D;
   DrawFPS(10, 10); // Draw current FPS
   Drawtext('Press 1 or 3 to change collision mode. Cursor key for moves.',100,10,20,ColorCreate(192,220,192,255));
 end;

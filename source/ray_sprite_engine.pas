@@ -12,7 +12,7 @@ unit ray_sprite_engine;
 interface
 
 uses
- ray_header, ray_math_2d, Classes, SysUtils, math;
+ ray_header, ray_math, Classes, SysUtils, math;
 
 type
   {$Region Enum}
@@ -42,11 +42,6 @@ type
     FVisibleHeight: Integer;
     FVisibleWidth: Integer;
     FWorld: TVector3;
-    FCamera: TCamera2D;
-    procedure SetCameraOffset(AValue: TVector2);
-    procedure SetCameraRotation(AValue: Single);
-    procedure SetCameraTarget(AValue: TVector2);
-    procedure SetCameraZoom(AValue: Single);
     procedure SetWorldX(Value: Single);
     procedure SetWorldY(Value: Single);
   protected
@@ -59,11 +54,6 @@ type
     procedure ClearDeadSprites;
     procedure Move(MoveCount: Double);
     procedure SetZOrder;
-    property Camera: TCamera2D read FCamera;
-    property CameraTarget: TVector2 read FCameraTarget write SetCameraTarget;
-    property CameraOffset: TVector2 read FCameraOffset write SetCameraOffset;
-    property CameraZoom:    Single read FCameraZoom write SetCameraZoom default 1.0;
-    property CameraRotation:Single read FCameraRotation write SetCameraRotation;
     property VisibleWidth: Integer read FVisibleWidth write FVisibleWidth;
     property VisibleHeight: Integer read FVisibleHeight write FVisibleHeight;
     property WorldX: Single read FWorld.X write SetWorldX;
@@ -144,6 +134,8 @@ type
     destructor Destroy; override;
 
     procedure LookAt(TargetX, TargetY: Single);
+    procedure MoveTowards(Target:Tvector2; Distance: Single);
+
     property TextureIndex: Integer read FTextureIndex write SetTextureIndex;
     property TextureName: string read FTextureName write SetTextureName;
     property X: Single read FVector.X write FVector.X;
@@ -220,30 +212,6 @@ implementation
 
 { TSpriteEngine }
 {$Region TSpriteEngine}
-procedure TSpriteEngine.SetCameraTarget(AValue: TVector2);
-begin
-  FCameraTarget:=AValue;
-  FCamera.target:=FCameraTarget;
-end;
-
-procedure TSpriteEngine.SetCameraZoom(AValue: Single);
-begin
-  FCameraZoom:=AValue;
-  FCamera.zoom:=FCameraZoom;
-end;
-
-procedure TSpriteEngine.SetCameraOffset(AValue: TVector2);
-begin
-  FCameraOffset:=AValue;
-  FCamera.offset:=FCameraOffset;
-end;
-
-procedure TSpriteEngine.SetCameraRotation(AValue: Single);
-begin
-  FCameraRotation:=AValue;
-  FCamera.rotation:=FCameraRotation;
-end;
-
 procedure TSpriteEngine.SetWorldX(Value: Single);
 begin
   FWorld.X := Value;
@@ -317,10 +285,6 @@ begin
    FDeadList := TList.Create;
    FVisibleWidth:=GetScreenWidth;
    FVisibleHeight:=GetScreenHeight;
-   SetCameraZoom(1.0);
-   SetCameraOffset(Vector2Create(0,0));
-   SetCameraTarget(Vector2Create(0,0));
-   SetCameraRotation(0.0);
 end;
 
 destructor TSpriteEngine.Destroy;
@@ -482,10 +446,15 @@ begin
   if not TextureIndex >= 0 then Exit;
   if Assigned(FEngine) then
   begin
-     if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (FTexture.Texture[TextureIndex].width + FEngine.Camera.offset.X) ) and
+   {  if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (FTexture.Texture[TextureIndex].width + FEngine.Camera.offset.X) ) and
         (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (FTexture.Texture[TextureIndex].height + FEngine.Camera.offset.Y) ) and
         (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
-        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y))
+        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y)) }
+
+      if (X   > FEngine.WorldX - (FTexture.Texture[TextureIndex].width ) ) and
+         (Y   > FEngine.WorldY - (FTexture.Texture[TextureIndex].height ) ) and
+         (X   < FEngine.WorldX + (FEngine.VisibleWidth)) and
+         (Y   < FEngine.WorldY + (FEngine.VisibleHeight))
    then
     begin
      BeginBlendMode(Ord(FBlendingEffect));
@@ -496,8 +465,13 @@ begin
        mmXY:    RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
      end;
 
-     RectangleSet(@Dest, FEngine.FCamera.target.x + X,    //X + FWorldX + Offset.X - FEngine.FWorldX,
+     {RectangleSet(@Dest, FEngine.FCamera.target.x + X,    //X + FWorldX + Offset.X - FEngine.FWorldX,
                          FEngine.FCamera.target.y + Y,    //FY + FWorldY + Offset.Y - FEngine.FWorldY,
+                         FTexture.Texture[TextureIndex].width  * ScaleX,
+                         FTexture.Texture[TextureIndex].height * ScaleY);}
+
+     RectangleSet(@Dest,  X,    //X + FWorldX + Offset.X - FEngine.FWorldX,
+                          Y,    //FY + FWorldY + Offset.Y - FEngine.FWorldY,
                          FTexture.Texture[TextureIndex].width  * ScaleX,
                          FTexture.Texture[TextureIndex].height * ScaleY);
 
@@ -619,7 +593,15 @@ end;
 
 procedure TSprite.LookAt(TargetX, TargetY: Single);
 begin
-   Angle:=m_Angle(Self.X,Self.Y,TargetX, TargetY)-90;
+  Angle:=Vector2Angle(Vector2Create(X,Y),Vector2Create(TargetX, TargetY));
+end;
+
+procedure TSprite.MoveTowards(Target: Tvector2; Distance: Single);
+var posVector:TVector2;
+begin
+ posVector:=Vector2MoveTowards(Vector2Create(X,Y),Target,Distance);
+ x:=   posVector.x ;
+ y:=   posVector.y ;
 end;
 
 
@@ -690,10 +672,15 @@ begin
 
    if Assigned(FEngine) then
     begin
-     if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (PatternWidth + FEngine.Camera.offset.X) ) and
+    { if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (PatternWidth + FEngine.Camera.offset.X) ) and
         (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (PatternHeight + FEngine.Camera.offset.Y) ) and
         (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
-        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y))
+        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y)) }
+
+    if (X   > FEngine.WorldX - PatternWidth ) and
+       (Y   > FEngine.WorldY -  PatternHeight  ) and
+       (X   < FEngine.WorldX +  FEngine.VisibleWidth) and
+       (Y   < FEngine.WorldY +  FEngine.VisibleHeight)
   then
    begin
     BeginBlendMode(Ord(FBlendingEffect));
@@ -710,8 +697,13 @@ begin
        end;
 
 
-      RectangleSet(@Dest, FEngine.FCamera.target.x + X,
+      {RectangleSet(@Dest, FEngine.FCamera.target.x + X,
                           FEngine.FCamera.target.y + Y,
+                          Self.PatternWidth  * ScaleX,
+                          Self.PatternHeight * ScaleY);}
+
+      RectangleSet(@Dest, X,
+                          Y,
                           Self.PatternWidth  * ScaleX,
                           Self.PatternHeight * ScaleY);
 

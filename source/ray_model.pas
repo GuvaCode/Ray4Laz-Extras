@@ -159,14 +159,14 @@ end;
 procedure T3dModel.Load3dModelTexture(FileName: String);
 begin
   FTexture:= LoadTexture(PChar(FileName));
-  SetMaterialTexture(FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
+  SetMaterialTexture(@FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
 end;
 
 procedure T3dModel.Load3dModelAnimations(FileName: String; AnimCoint: integer);
 begin
    FModel:=LoadModel(PChar(FileName));
    FAnimCont:=0;
-   FAnims:=LoadModelAnimations(PChar(FileName),&FAnimCont);
+   FAnims:=LoadModelAnimations(PChar(FileName),@FAnimCont);
 end;
 
 procedure T3dModel.Update3dModelAnimations(Frame: longint);
@@ -286,7 +286,7 @@ procedure TModelEngine.Move(MoveCount: Double);
 var
   i: Integer;
 begin
-   UpdateCamera(FCamera); // Update camera
+   UpdateCamera(@FCamera); // Update camera
   for i := 0 to List.Count - 1 do
   begin
     T3dModel(List.Items[i]).Move(MoveCount);

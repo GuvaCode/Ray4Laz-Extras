@@ -24,6 +24,7 @@ TGame = class(TRayApplication)
   public
     SpriteEngine: TSpriteEngine;
     GameTexture: TGameTexture;
+    Camera2D: TCamera2D;
     Figur:TFigur;
     constructor Create; override;
     procedure Update; override;
@@ -86,6 +87,13 @@ begin
   GameTexture:= TGameTexture.Create;
   GameTexture.LoadFromFile('data/gfx/boy.png');
 
+  Camera2d.zoom:=1;
+
+  SpriteEngine.VisibleWidth:=800;
+  SpriteEngine.VisibleHeight:=600;
+
+
+
   for i := 0 to 5 do
   begin
    with TFigur.Create(SpriteEngine,GameTexture) do
@@ -111,9 +119,13 @@ end;
 
 procedure TGame.Render;
 begin
-  BeginMode2D(SpriteEngine.Camera);
+  BeginMode2D(Camera2D);
   SpriteEngine.Draw;
+
   EndMode2D;
+
+  //DrawRectangle(0,0,800,600,RED);
+
   DrawFPS(10, 10); // Draw current FPS
 end;
 

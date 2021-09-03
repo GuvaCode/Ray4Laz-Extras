@@ -39,6 +39,8 @@ procedure TTux.Move(MoveCount: Double);
 begin
   inherited Move(MoveCount);
   if not DoAnimate then AnimPos:=0;
+  LookAt(GetMouseX,GetMouseY);
+  MoveTowards(GetMousePosition,0.5);
 end;
 
 constructor TGame.Create;
@@ -62,8 +64,10 @@ begin
   Tux.X:=800/2.0 - 64/2;
   Tux.Y:=600/2.0 - 64/2;
   Tux.SetPattern(64,64);
-
-
+  Tux.AngleVectorX:=64/2;
+  Tux.AngleVectorY:=64/2;
+  Tux.SpeedX:=0.0020;
+  Tux.TextureFilter:=tfBilinear;
 end;
 
 procedure TGame.Update;
@@ -89,9 +93,9 @@ end;
 
 procedure TGame.Render;
 begin
-  BeginMode2D(SpriteEngine.Camera);
+  //BeginMode2D(SpriteEngine.Camera);
   SpriteEngine.Draw;
-  EndMode2D;
+//  EndMode2D;
   DrawFPS(10, 10); // Draw current FPS
   DrawText('Press Left or Right to shange Mirror mode. Press Space to start or stop animation.',10,30,10,RED);
 end;

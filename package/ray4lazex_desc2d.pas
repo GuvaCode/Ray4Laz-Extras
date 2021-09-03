@@ -7,9 +7,7 @@ uses
   Classes, SysUtils, LazIDEIntf, ProjectIntf, Controls, Forms;
 
 type
-
     { TSpriteEngineApplicationDescriptor }
-
     TSpriteEngineApplicationDescriptor = class(TProjectDescriptor)
   public
     constructor Create; override;
@@ -20,7 +18,6 @@ type
   end;
 
     { TSpriteEngineFileUnit }
-
     TSpriteEngineFileUnit = class(TFileDescPascalUnit)
   public
     constructor Create; override;
@@ -47,12 +44,13 @@ begin
   RegisterProjectFileDescriptor(TSpriteEngineFileUnit.Create,FileDescGroupName);
   RegisterProjectDescriptor(TSpriteEngineApplicationDescriptor.Create);
 end;
- function FileDescriptorByName() : TProjectFileDescriptor;
+
+function FileDescriptorByName() : TProjectFileDescriptor;
 begin
   Result:=ProjectFileDescriptors.FindByName('RGA2d_Unit');
 end;
-{ TSpriteEngineFileUnit }
 
+{ TSpriteEngineFileUnit }
 constructor TSpriteEngineFileUnit.Create;
 begin
    inherited Create;
@@ -88,12 +86,13 @@ begin
   ''+LE+
   'procedure TGame.Update;'+LE+
   'begin'+LE+
+  ' SpriteEngine.ClearDeadSprites;  // cleaning dead sprites' +LE+
   ' SpriteEngine.Move(GetFrameTime); // move all sprites in SpriteEngine'+LE+
   'end;'+LE+
   ''+LE+
   'procedure TGame.Render;'+LE+
   'begin'+LE+
-  ' BeginMode2D(SpriteEngine.Camera);'+LE+
+  ' BeginMode2D(Camera2D);'+LE+
   ' SpriteEngine.Draw;'+LE+
   ' EndMode2D;'+LE+
   ' DrawFPS(10,10); // Draw current FPS'+LE+
@@ -124,6 +123,7 @@ begin
 '  public'+LE+
 '    SpriteEngine: TSpriteEngine;'+LE+
 '    GameTexture: TGameTexture;'+LE+
+'    Camera2D: TCamera2D;'+LE+
 '    constructor Create; override;'+LE+
 '    procedure Update; override;'+LE+
 '    procedure Render; override;'+LE+
