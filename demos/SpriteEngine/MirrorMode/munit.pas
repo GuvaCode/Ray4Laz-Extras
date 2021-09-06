@@ -5,7 +5,7 @@ unit mUnit;
 interface
 
 uses
-  cmem, ray_header, ray_application, ray_sprite_engine;
+  cmem, ray_header,ray_math, ray_application, ray_sprite_engine;
 
 type
 
@@ -24,6 +24,7 @@ TGame = class(TRayApplication)
     Tux:TTux;
     SpriteEngine: TSpriteEngine;
     GameTexture: TGameTexture;
+    Camera2D:TCamera2D;
     constructor Create; override;
     procedure Update; override;
     procedure Render; override;
@@ -68,6 +69,13 @@ begin
   Tux.AngleVectorY:=64/2;
   Tux.SpeedX:=0.0020;
   Tux.TextureFilter:=tfBilinear;
+
+  Camera2D.zoom:=0.5;
+  Camera2D.target.x:=Tux.x;
+  Camera2D.target.y:=Tux.y;
+  Camera2D.offset.x:=800/2;
+  Camera2D.offset.y:=600/2;
+
 end;
 
 procedure TGame.Update;
@@ -89,21 +97,36 @@ begin
      if Tux.DoAnimate then Tux.DoAnimate:=false else Tux.DoAnimate:=true;
     end;
 
+    Camera2D.target.x:=Tux.x;
+    Camera2D.target.y:=Tux.y;
+    UpdateCamera(@Camera2D);
+
+
 end;
 
 procedure TGame.Render;
+var testR,testA:TVector2;
 begin
-  //BeginMode2D(SpriteEngine.Camera);
+  BeginMode2D(Camera2D);
   SpriteEngine.Draw;
-//  EndMode2D;
+
+  //testR:=GetScreenToWorld2D(Vector2Create(Tux.X,Tux.Y),Camera2D);
+  //testA:=GetWorldToScreen2D(Vector2Create(Tux.X,Tux.Y),Camera2D);
+
+  testA:=Vector2Scale(Camera2D.target,Camera2D.zoom);
+
+
+
+
+  EndMode2D;
   DrawFPS(10, 10); // Draw current FPS
   DrawText('Press Left or Right to shange Mirror mode. Press Space to start or stop animation.',10,30,10,RED);
 end;
 
 procedure TGame.Resized;
 begin
-  SpriteEngine.VisibleWidth:=GetScreenWidth;
-  SpriteEngine.VisibleHeight:=GetScreenHeight;
+  SpriteEngine.VisibleWidth:=GetScreenWidth*3;
+  SpriteEngine.VisibleHeight:=GetScreenHeight*3;
 end;
 
 procedure TGame.Shutdown;

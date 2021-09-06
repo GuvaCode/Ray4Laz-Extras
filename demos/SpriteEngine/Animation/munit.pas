@@ -49,7 +49,8 @@ procedure TFigur.Move(MoveCount: Double);
 begin
   inherited Move(MoveCount);
   X:=X + SpeedX*MoveCount;
-     if ((X > GetScreenWidth) and (SpeedX > 0)) or
+
+    if ((X > GetScreenWidth) and (SpeedX > 0)) or
       ((X < -96) and (SpeedX < 0)) then
   begin
    SetLine;
@@ -89,12 +90,7 @@ begin
 
   Camera2d.zoom:=1;
 
-  SpriteEngine.VisibleWidth:=800;
-  SpriteEngine.VisibleHeight:=600;
-
-
-
-  for i := 0 to 5 do
+ for i := 0 to 5 do
   begin
    with TFigur.Create(SpriteEngine,GameTexture) do
     begin

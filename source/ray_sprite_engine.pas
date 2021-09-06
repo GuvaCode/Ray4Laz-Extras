@@ -35,13 +35,9 @@ type
   { TSpriteEngine }
   TSpriteEngine = class
   private
-    FCameraOffset: TVector2;
-    FCameraRotation: Single;
-    FCameraTarget: TVector2;
-    FCameraZoom: Single;
     FVisibleHeight: Integer;
     FVisibleWidth: Integer;
-    FWorld: TVector3;
+    FWorld: TVector2;
     procedure SetWorldX(Value: Single);
     procedure SetWorldY(Value: Single);
   protected
