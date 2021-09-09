@@ -81,10 +81,10 @@ begin
   while not WindowShouldClose() do
   begin
     Update;
-    BeginDrawing();
+    BeginDrawing;
     ClearBackground(FClearBackgroundColor);
     Render;
-    EndDrawing();
+    EndDrawing;
   end;
   Shutdown;
 end;
