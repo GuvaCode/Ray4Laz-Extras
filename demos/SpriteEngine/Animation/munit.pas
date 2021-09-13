@@ -79,16 +79,17 @@ constructor TGame.Create;
 var i:integer;
 begin
   //setup and initialization engine
-  InitWindow(800, 600, 'Sprite Engine Animation Sprite'); // Initialize window and OpenGL context
+  InitWindow(800, 450, 'Sprite Engine Animation Sprite'); // Initialize window and OpenGL context
   SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT); // Set window configuration state using flags
   SetTargetFPS(60); // Set target FPS (maximum)
   ClearBackgroundColor:= RAYWHITE; // Set background color (framebuffer clear color)
   // Greate the sprite engine and texture image list 
   SpriteEngine:=TSpriteEngine.Create;
+
   GameTexture:= TGameTexture.Create;
   GameTexture.LoadFromFile('data/gfx/boy.png');
 
-  Camera2d.zoom:=1;
+  Camera2D.zoom:=1;
 
  for i := 0 to 5 do
   begin
@@ -117,18 +118,12 @@ procedure TGame.Render;
 begin
   BeginMode2D(Camera2D);
   SpriteEngine.Draw;
-
   EndMode2D;
-
-  //DrawRectangle(0,0,800,600,RED);
-
   DrawFPS(10, 10); // Draw current FPS
 end;
 
 procedure TGame.Resized;
 begin
-  SpriteEngine.VisibleWidth:=GetScreenWidth;
-  SpriteEngine.VisibleHeight:=GetScreenHeight;
 end;
 
 procedure TGame.Shutdown;

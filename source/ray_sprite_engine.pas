@@ -18,16 +18,11 @@ type
   {$Region Enum}
   TBlendingEffect = ( beUndefined = -1, beAlpha, beAdditive, beMultiplied, beAddColors,
   beSubtract, beCustom);
-
   TTextureFilter = ( tfPoint = 0, tfBilinear, tfTrilinear, tfAnisotropic4, tfAnisotropic8,
   tfAnisotropic16);
-
   TTextureWrap = (twRepeat=0, twClamp, twMirrorRepeat, twMirrorClamp);
-
   TMirrorMode = (MmNormal, MmX, MmY, MmXY);
-
   TJumpState = (jsNone, jsJumping, jsFalling);
-
   TCollideMode = (cmCircle, cmRect, cmCircleRec, cmPolygon);
 
   {$EndRegion}
@@ -35,11 +30,9 @@ type
   { TSpriteEngine }
   TSpriteEngine = class
   private
-    FVisibleHeight: Integer;
-    FVisibleWidth: Integer;
-    FWorld: TVector2;
-    procedure SetWorldX(Value: Single);
-    procedure SetWorldY(Value: Single);
+    FRenderOnlyRectangle: boolean;
+    FRenderRectangle: TRectangle;
+    procedure SetRenderRectangle(AValue: TRectangle);
   protected
     FList: TList;
     FDeadList: TList;
@@ -50,10 +43,8 @@ type
     procedure ClearDeadSprites;
     procedure Move(MoveCount: Double);
     procedure SetZOrder;
-    property VisibleWidth: Integer read FVisibleWidth write FVisibleWidth;
-    property VisibleHeight: Integer read FVisibleHeight write FVisibleHeight;
-    property WorldX: Single read FWorld.X write SetWorldX;
-    property WorldY: Single read FWorld.Y write SetWorldY;
+    property RenderOnlyRectangle: boolean read FRenderOnlyRectangle write FRenderOnlyRectangle;
+    property RenderRectangle: TRectangle read FRenderRectangle write SetRenderRectangle;
   end;
 
   TPattern = record
@@ -97,6 +88,7 @@ type
     FZ: Single;
     FScale: Single;
     FAngle: Single;
+    FRenderRec:TRectangle;
     FTexture: TGameTexture;
     procedure SetAlpha(AValue: Integer);
     procedure SetAngleVector(AValue: TVector2);
@@ -164,7 +156,6 @@ type
   TAnimatedSprite = class(TSprite)
   private
     FAnimCount: Integer;
-    FAnimEnded: Boolean;
     FAnimLooped: Boolean;
     FAnimPos: Single;
     FAnimSpeed: Single;
@@ -203,28 +194,34 @@ type
     property DoAnimate  : Boolean read FDoAnimate write FDoAnimate;
   end;
 
-
 implementation
 
 { TSpriteEngine }
 {$Region TSpriteEngine}
-procedure TSpriteEngine.SetWorldX(Value: Single);
-begin
-  FWorld.X := Value;
-end;
-
-procedure TSpriteEngine.SetWorldY(Value: Single);
-begin
-  FWorld.Y := Value;
-end;
 
 procedure TSpriteEngine.Draw;
 var i: Integer;
 begin
- for i := 0 to FList.Count - 1 do
+  for i := 0 to FList.Count - 1 do
   begin
-    if TSprite(FList.Items[i]).FAnimated = False then TSprite(FList.Items[i]).Draw
-    else TAnimatedSprite(FList.Items[i]).Draw;
+    if TSprite(FList.Items[i]).FAnimated = False then
+      begin
+        if FRenderOnlyRectangle then
+         begin
+          if CheckCollisionRecs(TSprite(FList.Items[i]).FRenderRec, FRenderRectangle)
+           then TSprite(FList.Items[i]).Draw;
+         end
+        else TSprite(FList.Items[i]).Draw;
+      end
+    else
+      begin
+        if FRenderOnlyRectangle then
+         begin
+          if CheckCollisionRecs(TAnimatedSprite(FList.Items[i]).FRenderRec, FRenderRectangle)
+           then TAnimatedSprite(FList.Items[i]).Draw;
+         end
+        else TAnimatedSprite(FList.Items[i]).Draw;
+      end;
   end;
 end;
 
@@ -275,12 +272,16 @@ begin
   until Done;
 end;
 
+procedure TSpriteEngine.SetRenderRectangle(AValue: TRectangle);
+begin
+  FRenderRectangle:=AValue;
+end;
+
 constructor TSpriteEngine.Create;
 begin
    FList := TList.Create;
    FDeadList := TList.Create;
-   FVisibleWidth:=GetScreenWidth;
-   FVisibleHeight:=GetScreenHeight;
+   RenderOnlyRectangle := False;
 end;
 
 destructor TSpriteEngine.Destroy;
@@ -298,24 +299,19 @@ end;
 function TGameTexture.LoadFromFile(FileName: String; Width, Height: Integer
   ): Boolean;
 begin
-    if not fileexists(FileName) then
-   begin
-    Result := False;
-    Exit;
-   end;
-
+  if not fileexists(FileName) then
+    begin
+      Result := False;
+      Exit;
+    end;
   SetLength(Texture, Count + 1);
   SetLength(TextureName, Count + 1);
   SetLength(Pattern, Count + 1);
-
   Inc(Count);
-
   TextureName[Count - 1] := ChangeFileExt(ExtractFileName(FileName), '');
   Pattern[Count - 1].Width := Width;
   Pattern[Count - 1].Height := Height;
-
   Texture[Count - 1] := LoadTexture(Pchar(FileName));
-
   Result := True;
 end;
 
@@ -333,7 +329,6 @@ destructor TGameTexture.Destroy;
 var
   i: Integer;
 begin
-
   for i := 0 to Count - 1 do
   begin
     TextureName[i] := Emptystr;
@@ -341,11 +336,9 @@ begin
     Pattern[i].Height := 0;
     Pattern[i].Width := 0;
   end;
-
   SetLength(TextureName, 0);
   SetLength(Texture, 0);
   SetLength(Pattern, 0);
-
   Count := 0;
   inherited Destroy;
 end;
@@ -400,8 +393,6 @@ begin
     if (Fangle <> Value) then
   begin
     Fangle:= Value;
-
-   // TransformRequired:= True;
   end;
 end;
 
@@ -442,17 +433,6 @@ begin
   if not TextureIndex >= 0 then Exit;
   if Assigned(FEngine) then
   begin
-   {  if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (FTexture.Texture[TextureIndex].width + FEngine.Camera.offset.X) ) and
-        (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (FTexture.Texture[TextureIndex].height + FEngine.Camera.offset.Y) ) and
-        (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
-        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y)) }
-
-      if (X   > FEngine.WorldX - (FTexture.Texture[TextureIndex].width ) ) and
-         (Y   > FEngine.WorldY - (FTexture.Texture[TextureIndex].height ) ) and
-         (X   < FEngine.WorldX + (FEngine.VisibleWidth)) and
-         (Y   < FEngine.WorldY + (FEngine.VisibleHeight))
-   then
-    begin
      BeginBlendMode(Ord(FBlendingEffect));
      case MirrorMode of
        mmNormal:RectangleSet(@Source, 0, 0, FTexture.Texture[TextureIndex].width, FTexture.Texture[TextureIndex].height);
@@ -461,13 +441,7 @@ begin
        mmXY:    RectangleSet(@Source, 0, 0, -FTexture.Texture[TextureIndex].width, -FTexture.Texture[TextureIndex].height);
      end;
 
-     {RectangleSet(@Dest, FEngine.FCamera.target.x + X,    //X + FWorldX + Offset.X - FEngine.FWorldX,
-                         FEngine.FCamera.target.y + Y,    //FY + FWorldY + Offset.Y - FEngine.FWorldY,
-                         FTexture.Texture[TextureIndex].width  * ScaleX,
-                         FTexture.Texture[TextureIndex].height * ScaleY);}
-
-     RectangleSet(@Dest,  X,    //X + FWorldX + Offset.X - FEngine.FWorldX,
-                          Y,    //FY + FWorldY + Offset.Y - FEngine.FWorldY,
+     RectangleSet(@Dest, X, Y,
                          FTexture.Texture[TextureIndex].width  * ScaleX,
                          FTexture.Texture[TextureIndex].height * ScaleY);
 
@@ -476,13 +450,13 @@ begin
      FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
 
      EndBlendMode;
-  end;
  end;
 end;
 
 procedure TSprite.Move(MoveCount: Double);
 begin
- //--//--//--//
+  RectangleSet(@FRenderRec,X-FTexture.Texture[TextureIndex].width/2,Y-FTexture.Texture[TextureIndex].height/2,
+  FTexture.Texture[TextureIndex].width,FTexture.Texture[TextureIndex].height);
 end;
 
 procedure TSprite.Dead;
@@ -510,7 +484,6 @@ end;
 
 procedure TSprite.Collision(const Other: TSprite);
 var
-  //Delta: Real;
   IsCollide: Boolean;
 begin
   IsCollide := False;
@@ -560,22 +533,16 @@ begin
   FEngine := Engine;
   FEngine.FList.Add(Self);
   FTexture := Texture;
-
   Pattern.width := 0;
   Pattern.height := 0;
-
   Blue_ := 255;
   Green_ := 255;
   Red_ := 255;
   Alpha := 255;
-
   ScaleX := 1.0;
   ScaleY := 1.0;
-
-  Visible := True; // Displaymode Width/Height
-
+  Visible := True;
   MirrorMode:=mmNormal;
-
   FAngleVector:=Vector2Create(0,0);
   FTextureFilter:=tfBilinear;
   FTextureWrap:= twClamp;
@@ -665,20 +632,8 @@ var
   frameRec:TRectangle;
 begin
   if not TextureIndex >= 0 then Exit;
-
-   if Assigned(FEngine) then
+  if Assigned(FEngine) then
     begin
-    { if (X + FEngine.Camera.offset.X  > FEngine.WorldX - (PatternWidth + FEngine.Camera.offset.X) ) and
-        (Y + FEngine.Camera.offset.Y  > FEngine.WorldY - (PatternHeight + FEngine.Camera.offset.Y) ) and
-        (X + FEngine.Camera.offset.X  < FEngine.WorldX + (FEngine.VisibleWidth+ FEngine.Camera.offset.X)) and
-        (Y + FEngine.Camera.offset.Y  < FEngine.WorldY + (FEngine.VisibleHeight+ FEngine.Camera.offset.Y)) }
-
-    if (X   > FEngine.WorldX - PatternWidth ) and
-       (Y   > FEngine.WorldY -  PatternHeight  ) and
-       (X   < FEngine.WorldX +  FEngine.VisibleWidth) and
-       (Y   < FEngine.WorldY +  FEngine.VisibleHeight)
-  then
-   begin
     BeginBlendMode(Ord(FBlendingEffect));
 
     framerec:= SetPatternRec(FTexture.Texture[TextureIndex], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
@@ -692,34 +647,33 @@ begin
         mmXY:    RectangleSet(@frameRec, framerec.x, framerec.y, -Self.PatternWidth,-Self.PatternHeight);
        end;
 
-
-      {RectangleSet(@Dest, FEngine.FCamera.target.x + X,
-                          FEngine.FCamera.target.y + Y,
-                          Self.PatternWidth  * ScaleX,
-                          Self.PatternHeight * ScaleY);}
-
       RectangleSet(@Dest, X,
                           Y,
                           Self.PatternWidth  * ScaleX,
                           Self.PatternHeight * ScaleY);
 
-
        DrawTexturePro(FTexture.Texture[TextureIndex],
        frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
        FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
-
        FOldIndex:=FPatternIndex;
        EndBlendMode;
 
-    end;
+
+       DrawRectangleLinesEx(Self.FRenderRec,2,BLUE);
+
   end;
 end;
 
 procedure TAnimatedSprite.Move(MoveCount: Double);
 begin
-   inherited Move(MoveCount);
-
+   //inherited Move(MoveCount);
+  RectangleSet(@FRenderRec,X-PatternWidth/2,Y-PatternHeight/2,PatternWidth,PatternHeight);
    if not FDoAnimate then Exit;
+
+
+  //  RectangleSet(@FRenderRec,X-FTexture.Texture[TextureIndex].width/2,Y-FTexture.Texture[TextureIndex].height/2,
+//    FTexture.Texture[TextureIndex].width,FTexture.Texture[TextureIndex].height);
+
 
    if Trunc(FAnimPos)>FAnimCount-1 then FAnimPos:= FAnimStart;
    FAnimPos := FAnimPos + FAnimSpeed * MoveCount;
