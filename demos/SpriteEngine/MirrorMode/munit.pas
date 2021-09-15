@@ -114,7 +114,11 @@ begin
   begin
     Tux.MirrorMode:=MmNormal;
     Tux.SetAnim(0,8,20,True);
+    Tux.X:=Tux.X+4;
   end;
+
+
+
     Tux.DoAnimate:=true;
 
 {   if IsKeyDown(KEY_SPACE) then

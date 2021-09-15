@@ -12,7 +12,7 @@ unit ray_sprite_engine;
 interface
 
 uses
- ray_header, ray_math, Classes, SysUtils, math;
+ ray_header, ray_math, ray_math2d, Classes, SysUtils, math;
 
 type
   {$Region Enum}
@@ -194,7 +194,110 @@ type
     property DoAnimate  : Boolean read FDoAnimate write FDoAnimate;
   end;
 
+   { TPlayerSprite }
+    TPlayerSprite = class(TAnimatedSprite)
+     private
+          FSpeed: Single;
+          FAcc: Single;
+          FDcc: Single;
+          FOldAngle:Single;
+          FMinSpeed: Single;
+          FMaxSpeed: Single;
+          FVelocityX: Single;
+          FVelocityY: Single;
+          FDirection: Integer;
+          procedure SetSpeed(Value: Single);
+          procedure SetDirection(Value: Integer);
+     public
+          procedure UpdatePos;
+          procedure FlipXDirection;
+          procedure FlipYDirection;
+          procedure Accelerate; virtual;
+          procedure Deccelerate; virtual;
+          procedure Stop; virtual; abstract;
+          procedure Resume; virtual; abstract;
+          procedure Update; virtual; abstract;
+          property Speed: Single read FSpeed write SetSpeed;
+          property MinSpeed: Single read FMinSpeed write FMinSpeed;
+          property MaxSpeed: Single read FMaxSpeed write FMaxSpeed;
+          property VelocityX: Single read FVelocityX write FVelocityX;
+          property VelocityY: Single read FVelocityY write FVelocityY;
+          property Acceleration: Single read FAcc write FAcc;
+          property Decceleration: Single read FDcc write FDcc;
+          property Direction: Integer read FDirection write SetDirection;
+     end;
+
+
+
 implementation
+
+{ TPlayerSprite }
+
+procedure TPlayerSprite.SetSpeed(Value: Single);
+begin
+  if FSpeed > FMaxSpeed then
+          FSpeed := FMaxSpeed
+     else
+          if FSpeed < FMinSpeed then
+               FSpeed := FMinSpeed;
+     FSpeed := Value;
+     VelocityX := Cos256(FDirection) * Speed;
+     VelocityY := Sin256(FDirection) * Speed;
+end;
+
+procedure TPlayerSprite.SetDirection(Value: Integer);
+begin
+  FDirection := Value;
+  VelocityX := Cos256(FDirection) * Speed;
+  VelocityY := Sin256(FDirection) * Speed;
+end;
+
+procedure TPlayerSprite.UpdatePos;
+begin
+  X := X + VelocityX;
+  Y := Y + VelocityY;
+end;
+
+procedure TPlayerSprite.FlipXDirection;
+begin
+  if FDirection >= 64 then
+          FDirection := 192 + (64 - FDirection)
+     else
+          if FDirection > 0 then
+               FDirection := 256 - FDirection;
+end;
+
+procedure TPlayerSprite.FlipYDirection;
+begin
+  if FDirection > 128 then
+          FDirection := 128 + (256 - FDirection)
+     else
+          FDirection := 128 - FDirection;
+end;
+
+procedure TPlayerSprite.Accelerate;
+begin
+  if FSpeed <> FMaxSpeed then
+     begin
+          FSpeed := FSpeed + FAcc;
+          if FSpeed > FMaxSpeed then
+               FSpeed := FMaxSpeed;
+          VelocityX := Cos256(FDirection) * Speed;
+          VelocityY := Sin256(FDirection) * Speed;
+     end;
+end;
+
+procedure TPlayerSprite.Deccelerate;
+begin
+   if FSpeed <> FMinSpeed then
+     begin
+          FSpeed := FSpeed - FAcc;
+         if FSpeed < FMaxSpeed then
+               FSpeed := FMinSpeed;
+         VelocityX := Cos256(FDirection) * Speed;
+        VelocityY := Sin256(FDirection) * Speed;
+     end;
+end;
 
 { TSpriteEngine }
 {$Region TSpriteEngine}
@@ -666,15 +769,9 @@ end;
 
 procedure TAnimatedSprite.Move(MoveCount: Double);
 begin
-   //inherited Move(MoveCount);
-  RectangleSet(@FRenderRec,X-PatternWidth/2,Y-PatternHeight/2,PatternWidth,PatternHeight);
+   inherited Move(MoveCount);
+   RectangleSet(@FRenderRec,X-PatternWidth/2,Y-PatternHeight/2,PatternWidth,PatternHeight);
    if not FDoAnimate then Exit;
-
-
-  //  RectangleSet(@FRenderRec,X-FTexture.Texture[TextureIndex].width/2,Y-FTexture.Texture[TextureIndex].height/2,
-//    FTexture.Texture[TextureIndex].width,FTexture.Texture[TextureIndex].height);
-
-
    if Trunc(FAnimPos)>FAnimCount-1 then FAnimPos:= FAnimStart;
    FAnimPos := FAnimPos + FAnimSpeed * MoveCount;
    if (FAnimPos >= FAnimStart + FAnimCount) then
