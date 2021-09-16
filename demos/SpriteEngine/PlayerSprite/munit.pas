@@ -45,10 +45,6 @@ implementation
 
 procedure TPlayerShip.Move(MoveCount: Double);
 begin
-
-
-
-
     if IsKeyDown(KEY_LEFT) then
   begin
     Angle:=Angle-1;// Speed/4;
@@ -115,8 +111,6 @@ begin
   Player.Speed:=0;
   Player.Z:=300000;
 
-
-
   Camera2D.zoom:=1;
   Camera2D.target.x:=Player.x;
   Camera2D.target.y:=Player.y;
@@ -130,23 +124,18 @@ var screenV:TVector2;
 begin
     UpdateCamera(@Camera2D);
     SpriteEngine.ClearDeadSprites;  // cleaning dead sprites
-   SpriteEngine.Move(GetFrameTime); // move all sprites in SpriteEngine
-
+    SpriteEngine.Move(GetFrameTime); // move all sprites in SpriteEngine
 
     Camera2D.target.x:=Player.x;
     Camera2D.target.y:=Player.y;
 
-
-   Vector2Set(@screenV,GetScreenWidth/2,GetScreenHeight/2);
+    Vector2Set(@screenV,GetScreenWidth/2,GetScreenHeight/2);
 
     RectangleSet(@SpriteEngine.RenderRectangle,
     Camera2D.target.x-Vector2Scale(screenV, 1.0/Camera2D.zoom).x,
     Camera2D.target.y-Vector2Scale(screenV, 1.0/Camera2D.zoom).y,
     Vector2Scale(screenV, 1.0/Camera2D.zoom).x*2,
     Vector2Scale(screenV, 1.0/Camera2D.zoom).y*2);
-
-
-
 end;
 
 procedure TGame.Render;
@@ -159,8 +148,7 @@ end;
 
 procedure TGame.Resized;
 begin
-//  SpriteEngine.VisibleWidth:=GetScreenWidth;
-//  SpriteEngine.VisibleHeight:=GetScreenHeight;
+
 end;
 
 procedure TGame.Shutdown;
