@@ -29,11 +29,19 @@ function NotEqual(const Val1,Val2:Single):Boolean;    overload;
 procedure Centroid(const Polygon:TRayPolygon; out x,y:Single);overload;
 function Translate(const Dx,Dy:Single;   const Polygon   : TRayPolygon):TRayPolygon;     overload;
 function CenterAtLocation(const Polygon: TRayPolygon; const x,y:Single ):TRayPolygon; overload;
+function  m_Cos( Angle : Integer ) : Single;
+function  m_Sin( Angle : Integer ) : Single;
 
 const Epsilon_Medium    = 1.0E-12;
 const PIDiv180  =  0.017453292519943295769236907684886;
 const Zero              = 0.0;
-  const Epsilon           = Epsilon_Medium;
+const Epsilon           = Epsilon_Medium;
+
+var
+  CosTable256: array[0..255] of Double;
+  cosTable : array[ 0..360 ] of Single;
+  sinTable : array[ 0..360 ] of Single;
+
 implementation
 
 procedure Rotate(RotAng:Single; const x,y:Single; out Nx,Ny:Single);
@@ -67,8 +75,6 @@ begin
   Result := ((-Epsilon > Diff) or (Diff > Epsilon));
 
 end;
-
-
 
 procedure Centroid(const Polygon: TRayPolygon; out x, y: Single);
 var
@@ -121,6 +127,26 @@ function CenterAtLocation(const Polygon: TRayPolygon; const x, y: Single): TRayP
 begin
   Centroid(Polygon,Cx,Cy);
   Result := Translate(x - Cx,y - Cy,Polygon);
+end;
+
+function m_Cos(Angle: Integer): Single;
+begin
+   if Angle > 360 Then
+    DEC( Angle, ( Angle div 360 ) * 360 )
+  else
+    if Angle < 0 Then
+      INC( Angle, ( abs( Angle ) div 360 + 1 ) * 360 );
+  Result := cosTable[ Angle ];
+end;
+
+function m_Sin(Angle: Integer): Single;
+begin
+    if Angle > 360 Then
+    DEC( Angle, ( Angle div 360 ) * 360 )
+  else
+    if Angle < 0 Then
+      INC( Angle, ( abs( Angle ) div 360 + 1 ) * 360 );
+  Result := sinTable[ Angle ];
 end;
 
 function RotatePolygon(const RotAng:Single; const Polygon:TRayPolygon):TRayPolygon;
@@ -285,9 +311,6 @@ end;
 
 //---------------------------------------------------------------------------
 //precalculated fixed  point  cosines for a full circle
-var
-  CosTable256: array[0..255] of Double;
-
 
 procedure InitCosTable;
 var
@@ -296,6 +319,22 @@ begin
    for i:=0 to 255 do
     CosTable256[i] := Cos((i/256)*2*PI);
 end;
+
+procedure InitCosSinTables;
+  var
+    i         : Integer;
+    rad_angle : Single;
+begin
+  for i := 0 to 360 do
+    begin
+      rad_angle := i * ( pi / 180 );
+      cosTable[ i ] := cos( rad_angle );
+      sinTable[ i ] := sin( rad_angle );
+    end;
+end;
+
+
+
 
 function Cos256(i: Integer): Real;
 begin
@@ -310,6 +349,7 @@ end;
 
  initialization
  InitCosTable();
+ InitCosSinTables();
 
 end.
 

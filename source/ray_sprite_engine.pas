@@ -282,22 +282,28 @@ begin
           FSpeed := FSpeed + FAcc;
           if FSpeed > FMaxSpeed then
                FSpeed := FMaxSpeed;
-          VelocityX := Cos256(FDirection) * Speed;
-          VelocityY := Sin256(FDirection) * Speed;
+      //    VelocityX := Sin(Round(Angle)-360) * Speed;
+       //   VelocityY := Cos(Round(Angle)-180) * Speed;
+          VelocityX := m_Sin(Round(Angle)-360) * Speed;
+          VelocityY := m_Cos(Round(Angle)-180) * Speed;
      end;
 end;
 
 procedure TPlayerSprite.Deccelerate;
 begin
-   if FSpeed <> FMinSpeed then
-     begin
-          FSpeed := FSpeed - FAcc;
-         if FSpeed < FMaxSpeed then
-               FSpeed := FMinSpeed;
-         VelocityX := Cos256(FDirection) * Speed;
-        VelocityY := Sin256(FDirection) * Speed;
-     end;
-end;
+  if FSpeed <> FMinSpeed then
+      begin
+           FSpeed := FSpeed - FAcc;
+         {  if FSpeed < FMaxSpeed then
+                FSpeed := FMinSpeed;  }
+          // VelocityX := Cos256(FDirection) * Speed;
+         //  VelocityY := Sin256(FDirection) * Speed;
+              if FSpeed <= FMinSpeed then
+                FSpeed := FMinSpeed;
+             VelocityX := m_Sin(Round(Angle)-360) * Speed;
+             VelocityY := m_Cos(Round(Angle)-180) * Speed;
+      end;
+ end;
 
 { TSpriteEngine }
 {$Region TSpriteEngine}
@@ -309,21 +315,11 @@ begin
   begin
     if TSprite(FList.Items[i]).FAnimated = False then
       begin
-        if FRenderOnlyRectangle then
-         begin
-          if CheckCollisionRecs(TSprite(FList.Items[i]).FRenderRec, FRenderRectangle)
-           then TSprite(FList.Items[i]).Draw;
-         end
-        else TSprite(FList.Items[i]).Draw;
+        TSprite(FList.Items[i]).Draw;
       end
     else
       begin
-        if FRenderOnlyRectangle then
-         begin
-          if CheckCollisionRecs(TAnimatedSprite(FList.Items[i]).FRenderRec, FRenderRectangle)
-           then TAnimatedSprite(FList.Items[i]).Draw;
-         end
-        else TAnimatedSprite(FList.Items[i]).Draw;
+           TAnimatedSprite(FList.Items[i]).Draw;
       end;
   end;
 end;
@@ -533,8 +529,12 @@ var
   Source: TRectangle;
   Dest: TRectangle;
 begin
-  if not TextureIndex >= 0 then Exit;
-  if Assigned(FEngine) then
+
+ if not TextureIndex >= 0 then Exit;
+   RectangleSet(@FRenderRec,X-FTexture.Texture[TextureIndex].width/2,Y-FTexture.Texture[TextureIndex].height/2,
+   FTexture.Texture[TextureIndex].width,FTexture.Texture[TextureIndex].height);
+
+ if Assigned(FEngine) then
   begin
      BeginBlendMode(Ord(FBlendingEffect));
      case MirrorMode of
@@ -548,6 +548,12 @@ begin
                          FTexture.Texture[TextureIndex].width  * ScaleX,
                          FTexture.Texture[TextureIndex].height * ScaleY);
 
+     if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec, FEngine.FRenderRectangle))  then
+     DrawTexturePro(FTexture.Texture[TextureIndex],
+     Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
+     FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
+
+     if not FEngine.FRenderOnlyRectangle then
      DrawTexturePro(FTexture.Texture[TextureIndex],
      Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
      FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
@@ -558,8 +564,10 @@ end;
 
 procedure TSprite.Move(MoveCount: Double);
 begin
-  RectangleSet(@FRenderRec,X-FTexture.Texture[TextureIndex].width/2,Y-FTexture.Texture[TextureIndex].height/2,
-  FTexture.Texture[TextureIndex].width,FTexture.Texture[TextureIndex].height);
+
+
+
+
 end;
 
 procedure TSprite.Dead;
@@ -734,9 +742,13 @@ var
   Dest: TRectangle;
   frameRec:TRectangle;
 begin
-  if not TextureIndex >= 0 then Exit;
-  if Assigned(FEngine) then
+    if not TextureIndex >= 0 then Exit;
+    RectangleSet(@FRenderRec,X-PatternWidth/2,Y-PatternHeight/2,60,60);
+
+    if Assigned(FEngine) then
     begin
+
+
     BeginBlendMode(Ord(FBlendingEffect));
 
     framerec:= SetPatternRec(FTexture.Texture[TextureIndex], FPatternIndex,Trunc(FPatternWidth),Trunc(FPatternHeight));
@@ -750,28 +762,27 @@ begin
         mmXY:    RectangleSet(@frameRec, framerec.x, framerec.y, -Self.PatternWidth,-Self.PatternHeight);
        end;
 
-      RectangleSet(@Dest, X,
-                          Y,
-                          Self.PatternWidth  * ScaleX,
-                          Self.PatternHeight * ScaleY);
+      RectangleSet(@Dest, X,Y,Self.PatternWidth  * ScaleX, Self.PatternHeight * ScaleY);
 
-       DrawTexturePro(FTexture.Texture[TextureIndex],
-       frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
-       FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
+      if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec,FEngine.FRenderRectangle)) then
+        DrawTexturePro(FTexture.Texture[TextureIndex],
+        frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
+        FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
+
+      if not FEngine.FRenderOnlyRectangle then
+        DrawTexturePro(FTexture.Texture[TextureIndex],
+        frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
+        FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
+
        FOldIndex:=FPatternIndex;
        EndBlendMode;
-
-
-       DrawRectangleLinesEx(Self.FRenderRec,2,BLUE);
-
   end;
 end;
 
 procedure TAnimatedSprite.Move(MoveCount: Double);
 begin
-   inherited Move(MoveCount);
-   RectangleSet(@FRenderRec,X-PatternWidth/2,Y-PatternHeight/2,PatternWidth,PatternHeight);
-   if not FDoAnimate then Exit;
+  if not FDoAnimate then Exit;
+
    if Trunc(FAnimPos)>FAnimCount-1 then FAnimPos:= FAnimStart;
    FAnimPos := FAnimPos + FAnimSpeed * MoveCount;
    if (FAnimPos >= FAnimStart + FAnimCount) then
