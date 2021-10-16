@@ -38,14 +38,14 @@ implementation
 constructor TGame.Create;
 begin
   inherited;
-   InitWindow(800, 600, 'raylib [Game Project]'); // Initialize window and OpenGL context
-  SetWindowState(FLAG_VSYNC_HINT or FLAG_MSAA_4X_HINT); // Set window configuration state using flags
-  SetTargetFPS(60); // Set target FPS (maximum)
- ClearBackgroundColor:= WHITE;
-  Engine3d:=TModelEngine.Create;
- // CreateSkyBox;
-  Engine3d.EngineCameraMode:=cmFirstPerson;
-
+  InitWindow(GetScreenWidth, GetScreenHeight, 'raylib [Game Project]'); // Initialize window and OpenGL context
+  SetWindowState(FLAG_VSYNC_HINT or FLAG_FULLSCREEN_MODE ); // Set window configuration state using flags
+   SetTargetFPS(60); // Set target FPS (maximum)
+   ClearBackgroundColor:= WHITE;
+   Engine3d:=TModelEngine.Create;
+   CreateSkyBox;
+   Engine3d.EngineCameraMode:=cmFirstPerson;
+   Engine3d.DrawsGrid:=true;
   Boomber:=TBoomber.Create(Engine3d);
   Boomber.Load3dModel('data/model/bomber.glb');
   Boomber.Scale:=0.0100;
@@ -59,7 +59,7 @@ end;
 
 procedure TGame.Render;
 begin
- // RenderSkyBox;
+  RenderSkyBox;
   Engine3d.Draw;
 end;
 
@@ -68,9 +68,9 @@ begin
    // De-Initialization
     //--------------------------------------------------------------------------------------
 
-   // UnloadShader(skybox.materials[0].shader);
-   // UnloadTexture(skybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture);
-   // UnloadModel(skybox);        // Unload skybox model
+    UnloadShader(skybox.materials[0].shader);
+    UnloadTexture(skybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture);
+    UnloadModel(skybox);        // Unload skybox model
 end;
 
 procedure TGame.CreateSkyBox;

@@ -87,12 +87,12 @@ begin
   GameTexture.LoadFromFile('data/gfx/louse.png');
   GameTexture.LoadFromFile('data/gfx/star.png');
 
-  for i:=0 to 20000 do
+  for i:=0 to 20 do
   begin
   Star:=TSprite.Create(SpriteEngine,GameTexture);
   Star.TextureIndex:=1;
-  Star.X:=GetRandomValue(-10000,10000);
-  Star.Y:=GetRandomValue(-10000,10000);
+  Star.X:=GetRandomValue(-500,500);
+  Star.Y:=GetRandomValue(-500,500);
   Star.Angle:=GetRandomValue(0,360);
   Star.TextureFilter:=tfBilinear;
   end;
@@ -128,6 +128,10 @@ begin
 
     Camera2D.target.x:=Player.x;
     Camera2D.target.y:=Player.y;
+    SpriteEngine.WX:=Camera2D.target.x-32;
+    SpriteEngine.WY:=Camera2D.target.y-32;
+    SpriteEngine.Camera:=Camera2d;
+
 
     Vector2Set(@screenV,GetScreenWidth/2,GetScreenHeight/2);
 

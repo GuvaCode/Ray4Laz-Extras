@@ -30,8 +30,11 @@ type
   { TSpriteEngine }
   TSpriteEngine = class
   private
+    FCamera: TCamera2d;
     FRenderOnlyRectangle: boolean;
     FRenderRectangle: TRectangle;
+    FWX: single;
+    FWY: single;
     procedure SetRenderRectangle(AValue: TRectangle);
   protected
     FList: TList;
@@ -45,6 +48,9 @@ type
     procedure SetZOrder;
     property RenderOnlyRectangle: boolean read FRenderOnlyRectangle write FRenderOnlyRectangle;
     property RenderRectangle: TRectangle read FRenderRectangle write SetRenderRectangle;
+    property WX: single read FWX write FWX;
+    property WY: single read FWY write FWY;
+    property Camera: TCamera2d read FCamera write FCamera;
   end;
 
   TPattern = record
@@ -74,6 +80,7 @@ type
     FBlue: Integer;
     FCollideCenter: TVector2;
     FCollideMode: TCollideMode;
+    FCollidePolygon: TRayPolygon;
     FCollideRadius: Single;
     FCollideRect: TRectangle;
     FCollisioned: Boolean;
@@ -104,8 +111,8 @@ type
     FTextureIndex: Integer;
     procedure SetTextureName(Value: string);
     procedure SetTextureIndex(Value: Integer);
-    procedure DoCollision(const Sprite: TSprite); virtual;
-    procedure Move(MoveCount: Double); virtual;
+    procedure DoCollision(const {%H-}Sprite: TSprite); virtual;
+    procedure Move({%H-}MoveCount: Double); virtual;
   public
     IsSpriteDead: Boolean;
     ScaleX, ScaleY: Single;
@@ -141,15 +148,14 @@ type
     property MirrorMode: TMirrorMode read FMirrorMode write FMirrorMode;
     property AngleVectorX: Single read FAngleVector.x write FAngleVector.x;
     property AngleVectorY: Single read FAngleVector.y write FAngleVector.y;
-
     property CollideMode: TCollideMode read FCollideMode write FCollideMode;
     property Collisioned: Boolean read FCollisioned write FCollisioned;
     property CollideRect: TRectangle read FCollideRect write FCollideRect;
     property CollideCenter: TVector2 read FCollideCenter write FCollideCenter;
     property CollideRadius: Single read FCollideRadius write FCollideRadius;
+    property CollidePolygon: TRayPolygon read FCollidePolygon write FCollidePolygon;
     property SpeedX: Single read FSpeedX write FSpeedX;
     property SpeedY: Single read FSpeedY write FSpeedY;
-
   end;
 
   { TAnimatedSprite }
@@ -200,7 +206,6 @@ type
           FSpeed: Single;
           FAcc: Single;
           FDcc: Single;
-          FOldAngle:Single;
           FMinSpeed: Single;
           FMaxSpeed: Single;
           FVelocityX: Single;
@@ -227,9 +232,119 @@ type
           property Direction: Integer read FDirection write SetDirection;
      end;
 
+   { TJumperSprite }
 
+   TJumperSprite = class(TPlayerSprite)
+     private
+         FJumpCount: Integer;
+         FJumpSpeed: Single;
+         FJumpHeight: Single;
+         FMaxFallSpeed: Single;
+         FDoJump: Boolean;
+         FJumpState: TJumpState;
+         procedure SetJumpState(Value: TJumpState);
+    public
+         constructor Create(Engine: TSpriteEngine; Texture: TGameTexture); override;
+         procedure Move(MoveCount: Double); override;
+         procedure Accelerate; override;
+         procedure Deccelerate; override;
+         property JumpCount: Integer read FJumpCount write FJumpCount;
+         property JumpState: TJumpState read FJumpState write SetJumpState;
+         property JumpSpeed: Single read FJumpSpeed write FJumpSpeed;
+         property JumpHeight: Single read FJumpHeight write FJumpHeight;
+         property MaxFallSpeed: Single read FMaxFallSpeed write FMaxFallSpeed;
+         property DoJump: Boolean read  FDoJump write FDoJump;
+    end;
 
 implementation
+
+{ TJumperSprite }
+
+procedure TJumperSprite.SetJumpState(Value: TJumpState);
+begin
+   if FJumpState <> Value then
+     begin
+          FJumpState := Value;
+          case Value of
+               jsNone,
+               jsFalling:
+               begin
+                    FVelocityY := 0;
+               end;
+          end;
+     end;
+end;
+
+constructor TJumperSprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);
+begin
+  inherited Create(Engine, Texture);
+    FVelocityX := 0;
+    FVelocityY := 0;
+    MaxSpeed := FMaxSpeed;
+    FDirection := 0;
+    FJumpState := jsNone;
+    FJumpSpeed := 0.25;
+    FJumpHeight := 10;
+    Acceleration := 0.2;
+    Decceleration := 0.2;
+    FMaxFallSpeed := 5;
+    DoJump:= False;
+end;
+
+procedure TJumperSprite.Move(MoveCount: Double);
+begin
+  inherited Move(MoveCount);
+  case FJumpState of
+          jsNone:
+          begin
+
+               if DoJump then
+               begin
+
+                    FJumpState := jsJumping;
+                    VelocityY := -FJumpHeight;
+               end;
+          end;
+          jsJumping:
+          begin
+               Y:=Y+FVelocityY;
+               VelocityY:=FVelocityY+FJumpSpeed;
+               if VelocityY > 0 then
+                  FJumpState := jsFalling;
+          end;
+          jsFalling:
+          begin
+               Y:=Y-FVelocityY;
+               VelocityY:=VelocityY-FJumpSpeed;
+               if VelocityY > FMaxFallSpeed then
+                  VelocityY := FMaxFallSpeed;
+          end;
+     end;
+
+     DoJump := False;
+end;
+
+procedure TJumperSprite.Accelerate;
+begin
+   if FSpeed <> FMaxSpeed then
+     begin
+          FSpeed:= FSpeed+FAcc;
+          if FSpeed > FMaxSpeed then
+             FSpeed := FMaxSpeed;
+          VelocityX := Cos256(FDirection) * Speed;
+     end;
+end;
+
+procedure TJumperSprite.Deccelerate;
+begin
+   if FSpeed <> FMaxSpeed then
+     begin
+          FSpeed:= FSpeed+FAcc;
+          if FSpeed < FMaxSpeed then
+             FSpeed := FMaxSpeed;
+          VelocityX := Cos256(FDirection) * Speed;
+     end;
+end;
 
 { TPlayerSprite }
 
@@ -319,7 +434,7 @@ begin
       end
     else
       begin
-           TAnimatedSprite(FList.Items[i]).Draw;
+        TAnimatedSprite(FList.Items[i]).Draw;
       end;
   end;
 end;
@@ -421,7 +536,7 @@ end;
 
 constructor TGameTexture.Create;
 begin
-  //--//---//---
+  //nothing
 end;
 
 destructor TGameTexture.Destroy;
@@ -531,9 +646,10 @@ var
 begin
 
  if not TextureIndex >= 0 then Exit;
-   RectangleSet(@FRenderRec,X-FTexture.Texture[TextureIndex].width/2,Y-FTexture.Texture[TextureIndex].height/2,
-   FTexture.Texture[TextureIndex].width,FTexture.Texture[TextureIndex].height);
+//  RectangleSet(@FRenderRec,X-FTexture.Texture[TextureIndex].width ,Y-FTexture.Texture[TextureIndex].height ,
+//   FTexture.Texture[TextureIndex].width,FTexture.Texture[TextureIndex].height);
 
+//
  if Assigned(FEngine) then
   begin
      BeginBlendMode(Ord(FBlendingEffect));
@@ -548,7 +664,18 @@ begin
                          FTexture.Texture[TextureIndex].width  * ScaleX,
                          FTexture.Texture[TextureIndex].height * ScaleY);
 
-     if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec, FEngine.FRenderRectangle))  then
+
+       RectangleSet(@FRenderRec,
+   X,
+  Y,
+   64,64);
+
+
+
+
+       DrawRectangleLinesEx(FRenderRec,2,Red);
+
+    if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec, FEngine.FRenderRectangle))  then
      DrawTexturePro(FTexture.Texture[TextureIndex],
      Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
      FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
@@ -558,16 +685,18 @@ begin
      Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
      FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
 
+
+
+
+
      EndBlendMode;
- end;
+
+  end;
 end;
 
 procedure TSprite.Move(MoveCount: Double);
 begin
-
-
-
-
+//
 end;
 
 procedure TSprite.Dead;
@@ -616,7 +745,7 @@ begin
         end;
       cmPolygon:
         begin
-          //IsCollide := OverlapPolygon(Self.FCollidePolygon, Other.FCollidePolygon);
+          IsCollide := OverlapPolygon(Self.FCollidePolygon, Other.FCollidePolygon);
         end;
     end;
 
@@ -657,7 +786,6 @@ begin
   FAngleVector:=Vector2Create(0,0);
   FTextureFilter:=tfBilinear;
   FTextureWrap:= twClamp;
-
 end;
 
 destructor TSprite.Destroy;
@@ -826,12 +954,12 @@ end;
 
 procedure TAnimatedSprite.OnAnimStart;
 begin
-
+ //
 end;
 
 procedure TAnimatedSprite.OnAnimEnd;
 begin
-
+ //
 end;
 
 constructor TAnimatedSprite.Create(Engine: TSpriteEngine; Texture: TGameTexture);

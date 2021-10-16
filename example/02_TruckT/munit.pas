@@ -22,7 +22,7 @@ TGame = class(TRayApplication)
       Truck1: T3dModel;
 
     constructor Create; override;
-    procedure Init; override;
+   // procedure Init; override;
     procedure Update; override;
     procedure Render; override;
     procedure Shutdown; override;
@@ -43,6 +43,7 @@ implementation
 constructor TGame.Create;
 begin
   inherited;
+      InitWindow(800, 600, 'raylib [models] example - box collisions');
       SetConfigFlags(FLAG_MSAA_4X_HINT);      // Enable Multi Sampling Anti Aliasing 4x (if available)
   SetTargetFPS(60);
   Engine3d:=TModelEngine.Create;
@@ -68,10 +69,7 @@ begin
 
 end;
 
-procedure TGame.Init;
-begin
 
-end;
 
 procedure TGame.Update;
 begin
