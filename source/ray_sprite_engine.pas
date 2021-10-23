@@ -31,7 +31,7 @@ type
   TSpriteEngine = class
   private
     FCamera: TCamera2d;
-    FRenderOnlyRectangle: boolean;
+    //FRenderOnlyRectangle: boolean;
     FRenderRectangle: TRectangle;
     FWX: single;
     FWY: single;
@@ -46,8 +46,8 @@ type
     procedure ClearDeadSprites;
     procedure Move(MoveCount: Double);
     procedure SetZOrder;
-    property RenderOnlyRectangle: boolean read FRenderOnlyRectangle write FRenderOnlyRectangle;
-    property RenderRectangle: TRectangle read FRenderRectangle write SetRenderRectangle;
+  //  property RenderOnlyRectangle: boolean read FRenderOnlyRectangle write FRenderOnlyRectangle;
+  //  property RenderRectangle: TRectangle read FRenderRectangle write SetRenderRectangle;
     property WX: single read FWX write FWX;
     property WY: single read FWY write FWY;
     property Camera: TCamera2d read FCamera write FCamera;
@@ -495,7 +495,7 @@ constructor TSpriteEngine.Create;
 begin
    FList := TList.Create;
    FDeadList := TList.Create;
-   RenderOnlyRectangle := False;
+ //  RenderOnlyRectangle := False;
 end;
 
 destructor TSpriteEngine.Destroy;
@@ -665,29 +665,22 @@ begin
                          FTexture.Texture[TextureIndex].height * ScaleY);
 
 
-       RectangleSet(@FRenderRec,
-   X,
-  Y,
-   64,64);
+       RectangleSet(@FRenderRec, X,Y,64,64);
 
 
 
 
        DrawRectangleLinesEx(FRenderRec,2,Red);
 
-    if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec, FEngine.FRenderRectangle))  then
+   { if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec, FEngine.FRenderRectangle))  then
+     DrawTexturePro(FTexture.Texture[TextureIndex],
+     Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
+     FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));}
+
+   //  if not FEngine.FRenderOnlyRectangle then
      DrawTexturePro(FTexture.Texture[TextureIndex],
      Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
      FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
-
-     if not FEngine.FRenderOnlyRectangle then
-     DrawTexturePro(FTexture.Texture[TextureIndex],
-     Source, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY), //<{FAngleVector,}
-     FAngle, ColorCreate(Fred,FGreen,FBlue,FAlpha));
-
-
-
-
 
      EndBlendMode;
 
@@ -892,12 +885,12 @@ begin
 
       RectangleSet(@Dest, X,Y,Self.PatternWidth  * ScaleX, Self.PatternHeight * ScaleY);
 
-      if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec,FEngine.FRenderRectangle)) then
+     { if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec,FEngine.FRenderRectangle)) then
         DrawTexturePro(FTexture.Texture[TextureIndex],
         frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
-        FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));
+        FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha)); }
 
-      if not FEngine.FRenderOnlyRectangle then
+    //  if not FEngine.FRenderOnlyRectangle then
         DrawTexturePro(FTexture.Texture[TextureIndex],
         frameRec, Dest, Vector2Create(FAngleVector.x*ScaleX,FAngleVector.y*ScaleY),
         FAngle, ColorCreate(FRed,FGreen,FBlue,FAlpha));

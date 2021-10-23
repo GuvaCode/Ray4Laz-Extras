@@ -180,8 +180,8 @@ end;
 
 procedure TGame.Resized;
 begin
-  SpriteEngine.VisibleWidth:=GetScreenWidth;
-  SpriteEngine.VisibleHeight:=GetScreenHeight;
+  //SpriteEngine.VisibleWidth:=GetScreenWidth;
+  //SpriteEngine.VisibleHeight:=GetScreenHeight;
 end;
 
 procedure TGame.Shutdown;
