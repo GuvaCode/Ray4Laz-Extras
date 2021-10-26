@@ -665,12 +665,12 @@ begin
                          FTexture.Texture[TextureIndex].height * ScaleY);
 
 
-       RectangleSet(@FRenderRec, X,Y,64,64);
+    //   RectangleSet(@FRenderRec, X,Y,64,64);
 
 
 
 
-       DrawRectangleLinesEx(FRenderRec,2,Red);
+  //     DrawRectangleLinesEx(FRenderRec,2,Red);
 
    { if (FEngine.FRenderOnlyRectangle) and (CheckCollisionRecs(FRenderRec, FEngine.FRenderRectangle))  then
      DrawTexturePro(FTexture.Texture[TextureIndex],
