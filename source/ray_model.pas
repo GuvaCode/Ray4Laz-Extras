@@ -5,7 +5,7 @@ unit ray_model;
 interface
 
 uses
-  ray_header, ray_math, classes;
+  ray_header, ray_math, ray_rlgl, classes;
 
 type
   TModelDrawMode = (dmNormal, dmEx, dmWires, dmWiresEx);
@@ -18,9 +18,11 @@ type
      FEngineCameraPosition: TVector3;
      FGridSlices: longint;
      FGridSpacing: single;
+     FShowSkyBox: boolean;
      FWorld: TVector3;
      FCamera: TCamera;
      FDrawsGrid: Boolean;
+     FSkyBox: TModel;
 
      procedure SetCamera(AValue: TCamera);
      procedure SetDrawsGrid(AValue: boolean);
@@ -28,8 +30,11 @@ type
      procedure SetEngineCameraPosition(AValue: TVector3);
      procedure SetGridSlices(AValue: longint);
      procedure SetGridSpacing(AValue: single);
+     procedure SetShowSkyBox(AValue: boolean);
      procedure SetWorldX(Value: Single);
      procedure SetWorldY(Value: Single);
+   protected
+     procedure CreateSkyBox;
    public
      List: TList;
      DeadList: TList;
@@ -37,6 +42,7 @@ type
      procedure Draw();
      procedure ClearDeadModel;
      procedure Move(MoveCount: Double);
+     procedure LoadSkyBox(FileName :String);
 
      constructor Create;
      destructor Destroy; override;
@@ -45,11 +51,17 @@ type
 
      property WorldX: Single read FWorld.X write SetWorldX;
      property WorldY: Single read FWorld.Y write SetWorldY;
-     property DrawsGrid:boolean read FDrawsGrid write SetDrawsGrid;
+
+     property DrawsGrid: boolean read FDrawsGrid write SetDrawsGrid;
      property GridSlices:longint read FGridSlices write SetGridSlices;
      property GridSpacing: single read FGridSpacing write SetGridSpacing;
+
      property EngineCameraMode: TModelEngineCameraMode read FEngineCameraMode write SetEngineCameraMode;
      property EngineCameraPosition: TVector3 read FEngineCameraPosition write SetEngineCameraPosition;
+
+     property ShowSkyBox: boolean read FShowSkyBox write SetShowSkyBox;
+
+
   end;
 
   { T3dModel }
@@ -111,6 +123,7 @@ type
     property Model: TModel read FModel write FModel;
   end;
 
+  const LE = #10;
 
 implementation
 
@@ -201,8 +214,6 @@ begin
 end;
 
 
-
-
 procedure TModelEngine.SetDrawsGrid(AValue: boolean);
 begin
   FDrawsGrid:= AValue;
@@ -242,6 +253,12 @@ begin
   FGridSpacing:=AValue;
 end;
 
+procedure TModelEngine.SetShowSkyBox(AValue: boolean);
+begin
+  if FShowSkyBox=AValue then Exit;
+  FShowSkyBox:=AValue;
+end;
+
 procedure TModelEngine.SetWorldX(Value: Single);
 begin
   FWorld.X := Value;
@@ -252,11 +269,36 @@ begin
   FWorld.Y := Value;
 end;
 
+procedure TModelEngine.CreateSkyBox;
+
+{$I skybox.inc}
+
+var Cube:TMesh;
+    mMap:Integer;
+begin
+  Cube:=GenMeshCube(1.0,1.0,1.0);
+  FSkyBox:=LoadModelFromMesh(cube);
+  FSkybox.materials[0].shader := LoadShaderFromMemory(vs,fs);
+  mMap:=MATERIAL_MAP_CUBEMAP;
+  SetShaderValue(FSkybox.materials[0].shader, GetShaderLocation(FSkybox.materials[0].shader,
+  'environmentMap'), @mMap , SHADER_UNIFORM_INT);
+end;
+
 procedure TModelEngine.Draw();
 var
   i: Integer;
 begin
   BeginMode3d(FCamera);
+
+  if ShowSkyBox then
+   begin
+    rlDisableBackfaceCulling();
+    rlDisableDepthMask();
+    DrawModel(FSkybox, Vector3Create(0, 0, 0), 1.0, white);
+    rlEnableBackfaceCulling();
+    rlEnableDepthMask();
+   end;
+
   for i := 0 to List.Count - 1 do
   begin
     T3dModel(List.Items[i]).Draw();
@@ -293,6 +335,14 @@ begin
   end;
 end;
 
+procedure TModelEngine.LoadSkyBox(FileName: String);
+var img:TImage;
+begin
+   img := LoadImage(PChar(FileName));
+   FSkybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture := LoadTextureCubemap(img, CUBEMAP_LAYOUT_AUTO_DETECT);
+   UnloadImage(img);
+end;
+
 constructor TModelEngine.Create;
 begin
   List := TList.Create;
@@ -305,12 +355,18 @@ begin
   SetEngineCameraMode(cmCustom);
   FGridSpacing:=0.5;
   FGridSlices:=10;
+  FShowSkyBox:=False;
+  CreateSkyBox;
 end;
 
 destructor TModelEngine.Destroy;
 var
   i: Integer;
 begin
+  UnloadShader(FSkybox.materials[0].shader);
+  UnloadTexture(FSkybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture);
+  UnloadModel(FSkybox);        // Unload skybox model
+
   for i := 0 to List.Count - 1 do
   begin
     T3dModel(List.Items[i]).Destroy;

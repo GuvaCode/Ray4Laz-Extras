@@ -20,8 +20,8 @@ TGame = class(TRayApplication)
   public
       Engine3d: TModelEngine;
       Cube:   TMesh;
-       skybox: TModel;
-       Boomber: TBoomber;
+      skybox: TModel;
+      Boomber: TBoomber;
     constructor Create; override;
     procedure Update; override;
     procedure Render; override;

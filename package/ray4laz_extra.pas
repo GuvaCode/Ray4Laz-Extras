@@ -9,7 +9,7 @@ interface
 
 uses
   ray4lazEx_desc, ray4lazex_desc2d, ray_application, ray_model, 
-  ray_sprite_engine, LazarusPackageIntf;
+  ray_sprite_engine, ray_timers, LazarusPackageIntf;
 
 implementation
 
