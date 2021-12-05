@@ -1,3 +1,4 @@
+// SkyBox Shader
 const vs = '#version 330' + LE +
            '// Input vertex attributes' +LE +
            'in vec3 vertexPosition;' +LE +
