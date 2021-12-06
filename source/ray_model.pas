@@ -14,8 +14,13 @@ type
   { TModelEngine }
   TModelEngine = class
    private
+     FCameraPosition: TVector3;
+     FCameraPositionX: Single;
+     FCameraPositionY: Single;
+     FCameraPositionZ: Single;
+     FCameraTarget: TVector3;
+     FCameraUp: TVector3;
      FEngineCameraMode: TModelEngineCameraMode;
-     FEngineCameraPosition: TVector3;
      FGridSlices: longint;
      FGridSpacing: single;
      FShowSkyBox: boolean;
@@ -24,10 +29,18 @@ type
      FDrawsGrid: Boolean;
      FSkyBox: TModel;
 
-     procedure SetCamera(AValue: TCamera);
+     function GetCameraPositionX: Single;
+     function GetCameraPositionY: Single;
+     function GetCameraPositionZ: Single;
+     procedure SetCameraPosition(AValue: TVector3);
+     procedure SetCameraPositionX(AValue: Single);
+     procedure SetCameraPositionY(AValue: Single);
+     procedure SetCameraPositionZ(AValue: Single);
+     procedure SetCameraTarget(AValue: TVector3);
+     procedure SetCameraUp(AValue: TVector3);
      procedure SetDrawsGrid(AValue: boolean);
      procedure SetEngineCameraMode(AValue: TModelEngineCameraMode);
-     procedure SetEngineCameraPosition(AValue: TVector3);
+
      procedure SetGridSlices(AValue: longint);
      procedure SetGridSpacing(AValue: single);
      procedure SetShowSkyBox(AValue: boolean);
@@ -47,7 +60,8 @@ type
      constructor Create;
      destructor Destroy; override;
 
-     property Camera: TCamera read FCamera write SetCamera;
+     property Camera: TCamera read FCamera write FCamera;
+
 
      property WorldX: Single read FWorld.X write SetWorldX;
      property WorldY: Single read FWorld.Y write SetWorldY;
@@ -57,7 +71,15 @@ type
      property GridSpacing: single read FGridSpacing write SetGridSpacing;
 
      property EngineCameraMode: TModelEngineCameraMode read FEngineCameraMode write SetEngineCameraMode;
-     property EngineCameraPosition: TVector3 read FEngineCameraPosition write SetEngineCameraPosition;
+
+     property CameraPosition: TVector3 read FCameraPosition write SetCameraPosition;
+     property CameraPositionX: Single read GetCameraPositionX write SetCameraPositionX;
+     property CameraPositionY: Single read GetCameraPositionY write SetCameraPositionY;
+     property CameraPositionZ: Single read GetCameraPositionZ write SetCameraPositionZ;
+
+     property CameraTarget: TVector3 read FCameraTarget write SetCameraTarget;
+     property CameraUp: TVector3 read FCameraUp write SetCameraUp;
+
 
      property ShowSkyBox: boolean read FShowSkyBox write SetShowSkyBox;
 
@@ -71,10 +93,14 @@ type
     FAngleX: Single;
     FAngleY: Single;
     FAngleZ: Single;
+    FAnimationIndex: longint;
+    FAnimationSpeed: Single;
+
     FAxis: TVector3;
     FAxisX: Single;
     FAxisY: Single;
     FAxisZ: Single;
+    FCollisioned: Boolean;
     FColor: TColor;
     FDrawMode: TModelDrawMode;
     FScale: Single;
@@ -82,21 +108,32 @@ type
     FPosition: TVector3;
     FAnims : PModelAnimation;
     FAnimCont: integer;
+    FRayCollision: TRayCollision;
+
+    procedure SetAnimationIndex(AValue: longint);
+    procedure SetAnimationSpeed(AValue: Single);
     procedure SetScale(AValue: Single);
+
   protected
     FEngine: TModelEngine;
     FModel: TModel;
     FTexture: TTexture2d;
+    FIsModelAnimation: boolean;
+    FAnimFrameCounter: Single;
+    procedure DoCollision(const CollModel: T3dModel); virtual;
   public
     IsModelDead: Boolean;
     Visible: Boolean;
     procedure Draw();
-    procedure Move(MoveCount: Double); virtual;
+    procedure Move(MoveCount: Single); virtual;
     procedure Dead();
     procedure Load3dModel(FileName: String);
     procedure Load3dModelTexture(FileName: String);
-    procedure Load3dModelAnimations(FileName:String; AnimCoint:integer);
-    procedure Update3dModelAnimations(Frame:longint);
+    procedure Load3dModelAnimations(FileName:String);
+    procedure Update3dModelAnimations(MoveCount: Single);
+
+    procedure Collision(const Other: T3dModel); overload; virtual;
+    procedure Collision; overload; virtual;
 
     constructor Create(Engine: TModelEngine); virtual;
     destructor Destroy; override;
@@ -121,6 +158,9 @@ type
     property DrawMode: TModelDrawMode read FDrawMode write FDrawMode;
     property Anims: PModelAnimation read FAnims write FAnims;
     property Model: TModel read FModel write FModel;
+    property AnimationIndex: longint read FAnimationIndex write SetAnimationIndex;
+    property AnimationSpeed: Single read FAnimationSpeed write SetAnimationSpeed;
+    property Collisioned: Boolean read FCollisioned write FCollisioned;
   end;
 
   const LE = #10;
@@ -136,6 +176,23 @@ begin
   Vector3Set(@FScaleEx,FScale,FScale,FScale);
 end;
 
+procedure T3dModel.DoCollision(const CollModel: T3dModel);
+begin
+  ///
+end;
+
+procedure T3dModel.SetAnimationIndex(AValue: longint);
+begin
+  if FAnimationIndex=AValue then Exit;
+  FAnimationIndex:=AValue;
+end;
+
+procedure T3dModel.SetAnimationSpeed(AValue: Single);
+begin
+  if FAnimationSpeed=AValue then Exit;
+  FAnimationSpeed:=AValue;
+end;
+
 procedure T3dModel.Draw();
 begin
   if Assigned(FEngine) then
@@ -147,10 +204,11 @@ begin
     end;
 end;
 
-procedure T3dModel.Move(MoveCount: Double);
+procedure T3dModel.Move(MoveCount: Single);
 begin
-   FModel.transform:=MatrixRotateXYZ(Vector3Create(DEG2RAD*FAxisX,DEG2RAD*FAxisY,DEG2RAD*FAxisZ));
-   // DEG2RAD
+  FModel.transform:=MatrixRotateXYZ(Vector3Create(DEG2RAD*FAxisX,DEG2RAD*FAxisY,DEG2RAD*FAxisZ));
+
+  // DEG2RAD
    Vector3Set(@FAxis,FAxisX,FAxisY,FAxisZ);
 end;
 
@@ -175,17 +233,67 @@ begin
   SetMaterialTexture(@FModel.materials[0], MATERIAL_MAP_DIFFUSE, FTexture);//todo
 end;
 
-procedure T3dModel.Load3dModelAnimations(FileName: String; AnimCoint: integer);
+procedure T3dModel.Load3dModelAnimations(FileName: String);
 begin
    FModel:=LoadModel(PChar(FileName));
    FAnimCont:=0;
    FAnims:=LoadModelAnimations(PChar(FileName),@FAnimCont);
+   FAnimationIndex:=0;
+   FIsModelAnimation:=True;
 end;
 
-procedure T3dModel.Update3dModelAnimations(Frame: longint);
+procedure T3dModel.Update3dModelAnimations(MoveCount: Single);
 begin
-  UpdateModelAnimation(FModel,FAnims[0],Frame);
+if Self.FIsModelAnimation then
+ begin
+   FAnimFrameCounter:= FAnimFrameCounter + FAnimationSpeed * MoveCount;
+   UpdateModelAnimation(Fmodel, FAnims[FAnimationIndex], Round(FAnimFrameCounter));
+   if FAnimFrameCounter >= FAnims[FAnimationIndex].frameCount then FAnimFrameCounter := 0;
+ end;
 end;
+
+procedure T3dModel.Collision(const Other: T3dModel);
+var
+  Ray:TRay;
+  Mesh1:TMesh;
+begin
+  // FRayCollision.hit:=false;
+  if (FCollisioned) and (Other.FCollisioned) and (not IsModelDead) and (not Other.IsModelDead) then
+   begin
+    Mesh1:=Model.meshes^;
+
+     if CheckCollisionBoxes(GetMeshBoundingBox(Mesh1),GetMeshBoundingBox(Other.Model.meshes^)) then
+     begin
+       DoCollision(Other);
+       Other.DoCollision(Self);
+     end;
+
+    // Ray.position:=Vector3Create(X,Y,Z);
+    // Ray.direction:=Vector3Create(AxisX,AxisY,AxisZ);
+   //  FRayCollision:=GetRayCollisionModel(ray,Other.Model);
+
+  {if (FRayCollision.hit) and (FRayCollision.distance<0.001) then
+   begin
+     DoCollision(Other);
+     Other.DoCollision(Self);
+   end;  }
+
+   end;
+
+
+
+end;
+
+procedure T3dModel.Collision;
+var I: Integer;
+begin
+if (FEngine <> nil) and (not IsModelDead) and (Collisioned) then
+ begin
+   for i := 0 to FEngine.List.Count - 1 do Collision(T3dModel(FEngine.List.Items[i]));
+ end;
+end;
+
+
 
 constructor T3dModel.Create(Engine: TModelEngine);
 begin
@@ -199,6 +307,8 @@ begin
   FAxis:=Vector3Create(0.0,0.0,0.0);
   FScaleEx:= Vector3Create(1.0,1.0,1.0);
   FAngleX:=0.0;
+  FIsModelAnimation:=False;
+  FAnimationSpeed:=100;
 end;
 
 destructor T3dModel.Destroy;
@@ -208,9 +318,59 @@ begin
   inherited Destroy;
 end;
 
-procedure TModelEngine.SetCamera(AValue: TCamera);
+procedure TModelEngine.SetCameraPosition(AValue: TVector3);
 begin
-  FCamera:=AValue;
+  FCameraPosition:=AValue;
+  FCamera.position:=FCameraPosition;
+end;
+
+function TModelEngine.GetCameraPositionX: Single;
+begin
+  result:=FCamera.position.x;
+end;
+
+function TModelEngine.GetCameraPositionY: Single;
+begin
+  result:=FCamera.position.y;
+end;
+
+function TModelEngine.GetCameraPositionZ: Single;
+begin
+  result:=FCamera.position.z;
+end;
+
+procedure TModelEngine.SetCameraPositionX(AValue: Single);
+begin
+  //if FCameraPositionX=AValue then Exit;
+  FCameraPositionX:=AValue;
+  FCamera.position.x:=FCameraPositionX;
+end;
+
+procedure TModelEngine.SetCameraPositionY(AValue: Single);
+begin
+  ///if FCameraPositionY=AValue then Exit;
+  FCameraPositionY:=AValue;
+  FCamera.position.Y:=FCameraPositionY;
+end;
+
+procedure TModelEngine.SetCameraPositionZ(AValue: Single);
+begin
+ // if FCameraPositionZ=AValue then Exit;
+  FCameraPositionZ:=AValue;
+  FCamera.position.Z:=FCameraPositionZ;
+end;
+
+procedure TModelEngine.SetCameraTarget(AValue: TVector3);
+begin
+  //if FCameraTarget=AValue then Exit;
+  FCameraTarget:=AValue;
+  FCamera.target:=FCameraTarget;
+end;
+
+procedure TModelEngine.SetCameraUp(AValue: TVector3);
+begin
+  FCameraUp:=AValue;
+  FCamera.up:=FCameraUp;
 end;
 
 
@@ -233,13 +393,7 @@ begin
 
 end;
 
-procedure TModelEngine.SetEngineCameraPosition(AValue: TVector3);
-begin
- // if FEngineCameraPosition=AValue then Exit;
-  FEngineCameraPosition:=AValue;
-//  FCamera.position:=FEngineCameraPosition;
-  FCamera.target:=FEngineCameraPosition;
-end;
+
 
 procedure TModelEngine.SetGridSlices(AValue: longint);
 begin
@@ -331,6 +485,7 @@ begin
    UpdateCamera(@FCamera); // Update camera
   for i := 0 to List.Count - 1 do
   begin
+    T3dModel(List.Items[i]).Update3dModelAnimations(MoveCount);
     T3dModel(List.Items[i]).Move(MoveCount);
   end;
 end;
